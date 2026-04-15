@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vault Radar - Triage Studio (Alternative Approach)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f3f1ea;
+      --paper: #fffef9;
+      --ink: #1f1f16;
+      --muted: #676553;
+      --line: rgba(32, 31, 22, 0.18);
+      --accent: #0f8a6c;
+      --accent-2: #0369a1;
+      --danger: #b42318;
+      --warning: #b54708;
+      --ok: #2f7d32;
+      --chip: #ece8dc;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Manrope, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 12% 5%, #d8efe9 0%, transparent 30%),
+        radial-gradient(circle at 90% 10%, #dbeaf6 0%, transparent 35%),
+        var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      line-height: 1.45;
+    }
+
+    .app {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .topbar {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-right: auto;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0f8a6c, #0369a1);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+    }
+
+    .brand h1 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: var(--chip);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .chip.active {
+      background: #d8efe9;
+      border-color: #7ac5b3;
+      color: #0e5f4a;
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 310px 1fr;
+      gap: 14px;
+    }
+
+    .panel {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 16px;
+    }
+
+    .sub {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .problem-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .problem {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .problem strong {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .problem p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mini-metrics {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      padding: 10px;
+    }
+
+    .metric .k {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .metric .v {
+      font-size: 20px;
+      font-weight: 800;
+      margin-top: 4px;
+    }
+
+    .v.danger { color: var(--danger); }
+    .v.warning { color: var(--warning); }
+    .v.ok { color: var(--ok); }
+
+    .board-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(220px, 1fr));
+      gap: 10px;
+      align-items: start;
+    }
+
+    .lane {
+      background: #fcfbf6;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px;
+      min-height: 420px;
+    }
+
+    .lane h3 {
+      margin: 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #494736;
+    }
+
+    .lane-body {
+      margin-top: 8px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .card.active {
+      outline: 2px solid #7ac5b3;
+      outline-offset: 1px;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      margin-bottom: 8px;
+      color: var(--muted);
+    }
+
+    .risk {
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .risk.high { color: var(--danger); }
+    .risk.mid { color: var(--warning); }
+    .risk.low { color: var(--ok); }
+
+    .card h4 {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.3;
+    }
+
+    .meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .card-tags {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .tag {
+      font-size: 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 6px;
+      background: #f7f4eb;
+    }
+
+    .detail {
+      margin-top: 10px;
+      border-top: 1px dashed var(--line);
+      padding-top: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .detail h4 { margin: 0; font-size: 13px; }
+    .detail p { margin: 0; font-size: 12px; color: var(--muted); }
+
+    .ladder {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .step {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      text-align: center;
+      background: #fff;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .step strong {
+      display: block;
+      font-size: 11px;
+      color: var(--ink);
+      margin-bottom: 3px;
+    }
+
+    .legend {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 1160px) {
+      .layout { grid-template-columns: 1fr; }
+      .board { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      .board { grid-template-columns: 1fr; }
+      .mini-metrics { grid-template-columns: 1fr; }
+      .ladder { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark">VR</div>
+        <div>
+          <h1>Vault Radar - Triage Studio</h1>
+          <p>Alternative prototype: action-first planning instead of table-first triage</p>
+        </div>
+      </div>
+      <button class="chip active" data-filter="all">All findings</button>
+      <button class="chip" data-filter="live">Live only</button>
+      <button class="chip" data-filter="unowned">Unowned</button>
+      <button class="chip" data-filter="sla">SLA risk</button>
+    </div>
+
+    <div class="layout">
+      <aside class="panel">
+        <h2>Triage Summary</h2>
+        <p class="sub">Action-first view of finding pressure, ownership gaps, and near-term execution load.</p>
+
+        <div class="mini-metrics" id="metrics"></div>
+
+        <div class="legend">
+          Every finding lands in a time-based execution lane: Now, Next 24h, This Week, or Monitor.
+        </div>
+      </aside>
+
+      <main class="panel">
+        <div class="board-header">
+          <div>
+            <h2>Execution Board</h2>
+            <p class="sub">Cards are ranked by actionability score (risk + urgency + ownership gap + blast radius).</p>
+          </div>
+          <div class="sub" id="budgetLine">Team budget: 6 actions this shift</div>
+        </div>
+
+        <div class="board" id="board"></div>
+
+        <div class="detail" id="detail">
+          <h4>Select a card</h4>
+          <p>The detail panel will show decision logic and a remediation ladder.</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const findings = [
+      {
+        id: 1,
+        title: "AWS key in infra-prod",
+        secretType: "AWS access key",
+        risk: 98,
+        env: "prod",
+        exposure: "public repo",
+        validity: "live",
+        owner: "platform-team",
+        slaRisk: true,
+        ageHrs: 2,
+        blast: 4,
+        effort: "medium",
+        route: "now",
+        action: "Rotate key + invalidate sessions",
+        why: "Live key with infra privileges in production and broad exposure.",
+      },
+      {
+        id: 2,
+        title: "Stripe key in payments-api",
+        secretType: "Stripe secret",
+        risk: 95,
+        env: "prod",
+        exposure: "private repo",
+        validity: "live",
+        owner: "payments-team",
+        slaRisk: false,
+        ageHrs: 6,
+        blast: 5,
+        effort: "medium",
+        route: "now",
+        action: "Roll key and verify no unauthorized charges",
+        why: "Direct billing impact even with private exposure.",
+      },
+      {
+        id: 3,
+        title: "OpenAI key in llm-service",
+        secretType: "OpenAI API key",
+        risk: 83,
+        env: "prod",
+        exposure: "private repo",
+        validity: "live",
+        owner: null,
+        slaRisk: false,
+        ageHrs: 4,
+        blast: 3,
+        effort: "low",
+        route: "next24",
+        action: "Assign owner then rotate + set spend cap",
+        why: "Unowned live prod key increases delay and spend risk.",
+      },
+      {
+        id: 4,
+        title: "GCP key in ml-training",
+        secretType: "Service account",
+        risk: 91,
+        env: "prod",
+        exposure: "artifact share",
+        validity: "live",
+        owner: "ml-team",
+        slaRisk: true,
+        ageHrs: 12,
+        blast: 4,
+        effort: "high",
+        route: "next24",
+        action: "Revoke key, issue constrained replacement",
+        why: "Broad data surface and current SLA pressure.",
+      },
+      {
+        id: 5,
+        title: "Database password in data-pipeline",
+        secretType: "DB password",
+        risk: 68,
+        env: "staging",
+        exposure: "private repo",
+        validity: "live",
+        owner: "data-team",
+        slaRisk: false,
+        ageHrs: 72,
+        blast: 2,
+        effort: "low",
+        route: "week",
+        action: "Rotate + enforce secret manager path",
+        why: "Staging but likely reuse risk; remediation is straightforward.",
+      },
+      {
+        id: 6,
+        title: "Slack webhook in internal wiki",
+        secretType: "Webhook",
+        risk: 41,
+        env: "unknown",
+        exposure: "internal wiki",
+        validity: "live",
+        owner: "devrel-team",
+        slaRisk: false,
+        ageHrs: 336,
+        blast: 1,
+        effort: "low",
+        route: "monitor",
+        action: "Regenerate webhook during weekly hygiene",
+        why: "Low blast radius and constrained channel access.",
+      }
+    ];
+
+    const budget = 6;
+    let activeFilter = "all";
+    let activeId = null;
+
+    const board = document.getElementById("board");
+    const metrics = document.getElementById("metrics");
+    const detail = document.getElementById("detail");
+    const budgetLine = document.getElementById("budgetLine");
+
+    const lanes = [
+      { id: "now", title: "Do Now", hint: "Within this shift" },
+      { id: "next24", title: "Next 24h", hint: "Schedule owner and action" },
+      { id: "week", title: "This Week", hint: "Planned remediation" },
+      { id: "monitor", title: "Monitor", hint: "Track for change" },
+    ];
+
+    function actionabilityScore(f) {
+      const urgency = f.slaRisk ? 20 : f.ageHrs > 48 ? 10 : 5;
+      const ownershipPenalty = f.owner ? 0 : 12;
+      const blastWeight = f.blast * 2;
+      return Math.min(100, f.risk + urgency + ownershipPenalty + blastWeight);
+    }
+
+    function applyFilter(list) {
+      if (activeFilter === "live") return list.filter(f => f.validity === "live");
+      if (activeFilter === "unowned") return list.filter(f => !f.owner);
+      if (activeFilter === "sla") return list.filter(f => f.slaRisk);
+      return list;
+    }
+
+    function metricView(filtered) {
+      const live = filtered.filter(f => f.validity === "live").length;
+      const unowned = filtered.filter(f => !f.owner).length;
+      const sla = filtered.filter(f => f.slaRisk).length;
+      const high = filtered.filter(f => actionabilityScore(f) >= 90).length;
+
+      metrics.innerHTML = `
+        <div class="metric">
+          <div class="k">Live findings</div>
+          <div class="v">${live}</div>
+        </div>
+        <div class="metric">
+          <div class="k">Unowned</div>
+          <div class="v warning">${unowned}</div>
+        </div>
+        <div class="metric">
+          <div class="k">SLA risk</div>
+          <div class="v danger">${sla}</div>
+        </div>
+        <div class="metric">
+          <div class="k">Actionability >= 90</div>
+          <div class="v ok">${high}</div>
+        </div>
+      `;
+    }
+
+    function renderDetail(item) {
+      if (!item) {
+        detail.innerHTML = `
+          <h4>Select a card</h4>
+          <p>The detail panel will show decision logic and a remediation ladder.</p>
+        `;
+        return;
+      }
+
+      const score = actionabilityScore(item);
+      detail.innerHTML = `
+        <h4>${item.title}</h4>
+        <p>${item.why}</p>
+        <p><strong>Actionability score:</strong> ${score}/100 | <strong>Next action:</strong> ${item.action}</p>
+        <div class="ladder">
+          <div class="step"><strong>1. Verify</strong>Confirm validity and scope</div>
+          <div class="step"><strong>2. Contain</strong>Limit exposure path</div>
+          <div class="step"><strong>3. Rotate</strong>Issue replacement secret</div>
+          <div class="step"><strong>4. Close</strong>Link evidence and owner</div>
+        </div>
+      `;
+    }
+
+    function renderBoard() {
+      const filtered = applyFilter(findings)
+        .map(f => ({ ...f, aScore: actionabilityScore(f) }))
+        .sort((a, b) => b.aScore - a.aScore);
+
+      metricView(filtered);
+
+      const immediateCount = filtered.filter(f => f.route === "now" || f.route === "next24").length;
+      budgetLine.textContent = `Team budget: ${budget} actions this shift | Immediate queue: ${immediateCount}`;
+
+      board.innerHTML = lanes.map(lane => {
+        const items = filtered.filter(f => f.route === lane.id);
+        const cards = items.map(item => {
+          const riskClass = item.aScore >= 90 ? "high" : item.aScore >= 70 ? "mid" : "low";
+          const owner = item.owner || "Unowned";
+          const isActive = item.id === activeId ? "active" : "";
+          return `
+            <article class="card ${isActive}" data-id="${item.id}">
+              <div class="card-top">
+                <span>${item.secretType}</span>
+                <span class="risk ${riskClass}">${item.aScore}</span>
+              </div>
+              <h4>${item.title}</h4>
+              <div class="meta">
+                <span>${item.env.toUpperCase()} | ${item.validity}</span>
+                <span>${owner}</span>
+              </div>
+              <div class="card-tags">
+                <span class="tag">${item.exposure}</span>
+                <span class="tag">blast ${item.blast}</span>
+                <span class="tag">effort ${item.effort}</span>
+                ${item.slaRisk ? '<span class="tag">SLA risk</span>' : ""}
+              </div>
+            </article>
+          `;
+        }).join("");
+
+        return `
+          <section class="lane">
+            <h3>${lane.title} <span>${items.length}</span></h3>
+            <p class="sub">${lane.hint}</p>
+            <div class="lane-body">${cards || '<p class="sub">No cards</p>'}</div>
+          </section>
+        `;
+      }).join("");
+
+      document.querySelectorAll(".card").forEach(el => {
+        el.addEventListener("click", () => {
+          const id = Number(el.dataset.id);
+          activeId = id;
+          const item = findings.find(f => f.id === id);
+          renderBoard();
+          renderDetail(item);
+        });
+      });
+    }
+
+    document.querySelectorAll(".chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+        btn.classList.add("active");
+        activeFilter = btn.dataset.filter;
+        activeId = null;
+        renderBoard();
+        renderDetail(null);
+      });
+    });
+
+    renderBoard();
+    renderDetail(null);
+  </script>
+</body>
+</html>

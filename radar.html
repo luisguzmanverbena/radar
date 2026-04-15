@@ -1,0 +1,2407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault Radar — Secret Scanning Dashboard</title>
+<style>
+  :root {
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f5f4f0;
+    --color-background-tertiary: #eeede9;
+    --color-background-info: #e6f1fb;
+    --color-background-danger: #fcebeb;
+    --color-background-success: #eaf3de;
+    --color-background-warning: #faeeda;
+    --color-text-primary: #1a1a18;
+    --color-text-secondary: #5f5e5a;
+    --color-text-tertiary: #888780;
+    --color-text-info: #185fa5;
+    --color-text-danger: #a32d2d;
+    --color-text-success: #3b6d11;
+    --color-text-warning: #854f0b;
+    --color-border-tertiary: rgba(0,0,0,0.1);
+    --color-border-secondary: rgba(0,0,0,0.18);
+    --color-border-primary: rgba(0,0,0,0.28);
+    --color-border-info: #b5d4f4;
+    --color-border-danger: #f7c1c1;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-background-primary: #1c1c1a;
+      --color-background-secondary: #252522;
+      --color-background-tertiary: #2c2c2a;
+      --color-background-info: #042c53;
+      --color-background-danger: #501313;
+      --color-background-success: #173404;
+      --color-background-warning: #412402;
+      --color-text-primary: #f0efe9;
+      --color-text-secondary: #b4b2a9;
+      --color-text-tertiary: #888780;
+      --color-text-info: #85b7eb;
+      --color-text-danger: #f09595;
+      --color-text-success: #97c459;
+      --color-text-warning: #ef9f27;
+      --color-border-tertiary: rgba(255,255,255,0.1);
+      --color-border-secondary: rgba(255,255,255,0.18);
+      --color-border-primary: rgba(255,255,255,0.28);
+      --color-border-info: #0c447c;
+      --color-border-danger: #791f1f;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-background-tertiary);
+    color: var(--color-text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .app { display: flex; height: 100vh; min-height: 600px; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--color-background-primary);
+    border-right: 0.5px solid var(--color-border-tertiary);
+    display: flex;
+    flex-direction: column;
+    padding: 16px 0;
+  }
+
+  .sidebar-logo {
+    padding: 4px 16px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sidebar-logo-icon {
+    width: 24px;
+    height: 24px;
+    background: #1D9E75;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-logo-icon svg { width: 14px; height: 14px; fill: white; }
+
+  .nav-section { padding: 0 8px; margin-bottom: 4px; }
+
+  .nav-label {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    padding: 4px 8px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    transition: background 0.1s;
+  }
+
+  .nav-item:hover { background: var(--color-background-secondary); }
+  .nav-item.active {
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+    font-weight: 500;
+  }
+
+  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.7; }
+
+  .nav-badge {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 20px;
+    background: var(--color-background-danger);
+    color: var(--color-text-danger);
+    font-weight: 500;
+  }
+
+  /* Main area */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar {
+    background: var(--color-background-primary);
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .topbar-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: background 0.1s;
+  }
+
+  .btn:hover { background: var(--color-background-secondary); }
+  .btn svg { width: 14px; height: 14px; }
+
+  .btn-primary {
+    background: #1D9E75;
+    color: white;
+    border-color: #1D9E75;
+  }
+  .btn-primary:hover { background: #0F6E56; border-color: #0F6E56; }
+
+  /* Content */
+  .content { flex: 1; overflow-y: auto; padding: 20px; }
+
+  /* Metrics */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .metric {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 14px 16px;
+  }
+
+  .metric-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; }
+  .metric-value { font-size: 24px; font-weight: 500; color: var(--color-text-primary); }
+  .metric-value.danger { color: #A32D2D; }
+  .metric-value.warning { color: #854F0B; }
+  .metric-value.success { color: #3B6D11; }
+  .metric-value.info { color: #185FA5; }
+  .metric-delta { font-size: 12px; color: var(--color-text-tertiary); margin-top: 4px; }
+
+  /* Section header */
+  .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .section-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
+
+  /* Filter chips */
+  .filters { display: flex; align-items: center; gap: 8px; }
+
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-primary);
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+
+  .filter-chip:hover,
+  .filter-chip.active {
+    border-color: var(--color-border-secondary);
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+  }
+
+  .filter-chip.active { border-color: #1D9E75; color: #0F6E56; }
+
+  /* Table */
+  .table-wrap {
+    background: var(--color-background-primary);
+    border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-tertiary);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+
+  .search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 6px 10px;
+    flex: 1;
+    max-width: 280px;
+  }
+
+  .search input {
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--color-text-primary);
+    outline: none;
+    flex: 1;
+    font-family: var(--font-sans);
+  }
+
+  .search svg { width: 14px; height: 14px; color: var(--color-text-tertiary); flex-shrink: 0; }
+
+  select.filter-select {
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    background: var(--color-background-primary);
+    font-family: var(--font-sans);
+    cursor: pointer;
+    outline: none;
+  }
+
+  .bulk-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: var(--color-background-info);
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+
+  .bulk-label { font-size: 13px; color: var(--color-text-info); flex: 1; }
+  .bulk-actions { display: flex; gap: 6px; }
+
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+  th {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    white-space: nowrap;
+  }
+
+  td {
+    font-size: 13px;
+    color: var(--color-text-primary);
+    padding: 11px 14px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr.selected td { background: var(--color-background-info); }
+  tr:hover td { background: var(--color-background-secondary); }
+
+  .check {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 0.5px solid var(--color-border-secondary);
+    cursor: pointer;
+    appearance: none;
+    flex-shrink: 0;
+    background: var(--color-background-primary);
+  }
+
+  .check:checked { background: #1D9E75; border-color: #1D9E75; }
+
+  /* Badges */
+  .sev-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .sev-critical { background: #FCEBEB; color: #791F1F; }
+  .sev-high { background: #FAEEDA; color: #633806; }
+  .sev-medium { background: #FAEEDA; color: #854F0B; }
+  .sev-low { background: #EAF3DE; color: #27500A; }
+  .sev-info { background: #E6F1FB; color: #0C447C; }
+
+  /* Score bar */
+  .score-bar { display: flex; align-items: center; gap: 8px; }
+  .score-track { flex: 1; height: 4px; background: var(--color-background-secondary); border-radius: 2px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 2px; }
+  .score-num { font-size: 12px; color: var(--color-text-secondary); min-width: 24px; text-align: right; }
+
+  /* Resource tag */
+  .resource-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--color-text-secondary); }
+
+  .resource-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .resource-icon svg { width: 10px; height: 10px; }
+  .ri-github { background: #D3D1C7; color: #2C2C2A; }
+  .ri-slack { background: #B5D4F4; color: #042C53; }
+  .ri-aws { background: #FAC775; color: #412402; }
+  .ri-wiki { background: #CECBF6; color: #26215C; }
+
+  /* Owner pill */
+  .owner-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-text-secondary); }
+
+  .avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .av-blue { background: #B5D4F4; color: #042C53; }
+  .av-teal { background: #9FE1CB; color: #04342C; }
+  .av-purple { background: #CECBF6; color: #26215C; }
+  .av-amber { background: #FAC775; color: #412402; }
+
+  /* Validity */
+  .validity-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .vd-live { background: #1D9E75; }
+  .vd-expired { background: #888780; }
+  .vd-unknown { background: #EF9F27; }
+
+  /* Age */
+  .age-text { font-size: 12px; color: var(--color-text-tertiary); }
+
+  /* Env tags */
+  .env-tag { font-size: 11px; padding: 2px 7px; border-radius: 4px; display: inline-block; font-weight: 500; }
+  .env-prod { background: #FCEBEB; color: #791F1F; }
+  .env-staging { background: #FAEEDA; color: #633806; }
+  .env-dev { background: #EAF3DE; color: #27500A; }
+  .env-unknown { background: #F1EFE8; color: #5F5E5A; }
+
+  /* Right panel */
+  .right-panel {
+    width: 320px;
+    flex-shrink: 0;
+    background: var(--color-background-primary);
+    border-left: 0.5px solid var(--color-border-tertiary);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .panel-header {
+    padding: 14px 16px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    background: var(--color-background-primary);
+  }
+
+  .panel-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
+
+  .panel-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-tertiary);
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+  }
+
+  .panel-close:hover { color: var(--color-text-primary); background: var(--color-background-secondary); }
+
+  .panel-section {
+    padding: 14px 16px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+
+  .panel-section-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+
+  .detail-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    gap: 12px;
+  }
+
+  .detail-label { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; }
+  .detail-value { font-size: 12px; color: var(--color-text-primary); text-align: right; }
+
+  .score-breakdown { display: flex; flex-direction: column; gap: 8px; }
+
+  .score-factor { display: flex; align-items: center; gap: 8px; }
+  .score-factor-label { font-size: 12px; color: var(--color-text-secondary); flex: 1; }
+  .score-factor-track { width: 80px; height: 4px; background: var(--color-background-secondary); border-radius: 2px; overflow: hidden; }
+  .score-factor-fill { height: 100%; border-radius: 2px; }
+  .score-factor-val { font-size: 12px; color: var(--color-text-primary); min-width: 28px; text-align: right; }
+
+  .blast-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-background-secondary);
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin: 3px;
+  }
+
+  /* Action buttons */
+  .action-buttons { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    width: 100%;
+    transition: background 0.1s;
+    text-align: left;
+  }
+
+  .action-btn:hover { background: var(--color-background-secondary); }
+  .action-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .action-btn.success-btn { border-color: #1D9E75; color: #0F6E56; background: #E1F5EE; }
+  .action-btn.success-btn:hover { background: #9FE1CB; }
+
+  /* SLA */
+  .sla-bar { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .sla-track { flex: 1; height: 6px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+  .sla-fill { height: 100%; border-radius: 3px; }
+  .sla-label { font-size: 11px; color: var(--color-text-tertiary); }
+  .sla-overdue { color: #A32D2D; }
+
+  /* Empty panel */
+  .empty-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--color-text-tertiary);
+  }
+
+  .empty-panel svg { width: 32px; height: 32px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-panel p { font-size: 13px; }
+
+  .hidden { display: none !important; }
+  .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .col-check { width: 40px; }
+  .col-sev { width: 100px; }
+  .col-secret { width: 160px; }
+  .col-resource { width: 170px; }
+  .col-score { width: 110px; }
+  .col-validity { width: 90px; }
+  .col-owner { width: 120px; }
+  .col-age { width: 80px; }
+
+  .sev-score-critical .score-fill { background: #E24B4A; }
+  .sev-score-high .score-fill { background: #EF9F27; }
+  .sev-score-medium .score-fill { background: #BA7517; }
+  .sev-score-low .score-fill { background: #639922; }
+
+  /* Resource Config View */
+  .config-header { margin-bottom: 16px; }
+  .config-header p { font-size: 13px; color: var(--color-text-tertiary); line-height: 1.6; }
+
+  .tier-badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .tier-critical { background: #FCEBEB; color: #791F1F; }
+  .tier-high { background: #FAEEDA; color: #633806; }
+  .tier-medium { background: #E6F1FB; color: #0C447C; }
+  .tier-low { background: #EAF3DE; color: #27500A; }
+
+  .tier-select {
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 5px 8px;
+    font-size: 12px;
+    color: var(--color-text-primary);
+    background: var(--color-background-primary);
+    font-family: var(--font-sans);
+    cursor: pointer;
+    outline: none;
+    min-width: 90px;
+  }
+  .tier-select:focus { border-color: #1D9E75; }
+
+  .override-badge { display: inline-flex; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; background: var(--color-background-info); color: var(--color-text-info); margin-left: 6px; }
+  .inference-reason { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+
+  .distribution-section { background: var(--color-background-primary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); padding: 16px; margin-bottom: 20px; }
+  .distribution-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 12px; }
+  .dist-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .dist-row:last-child { margin-bottom: 0; }
+  .dist-label { font-size: 12px; color: var(--color-text-secondary); min-width: 50px; }
+  .dist-bar-track { flex: 1; height: 20px; background: var(--color-background-secondary); border-radius: 4px; overflow: hidden; }
+  .dist-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+  .dist-count { font-size: 12px; color: var(--color-text-primary); min-width: 80px; text-align: right; }
+
+  .topbar-actions { display: flex; align-items: center; gap: 8px; }
+  .overrides-summary { font-size: 12px; color: var(--color-text-info); padding: 4px 10px; background: var(--color-background-info); border-radius: 20px; }
+
+  /* Toast notification */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    padding: 10px 20px; border-radius: var(--border-radius-md);
+    background: var(--color-text-primary); color: var(--color-background-primary);
+    font-size: 13px; font-family: var(--font-sans); z-index: 1000;
+    opacity: 0; transition: all 0.3s ease; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Impact delta */
+  .dist-delta { font-size: 11px; min-width: 60px; font-weight: 500; }
+  .dist-delta.positive { color: #A32D2D; }
+  .dist-delta.negative { color: #3B6D11; }
+  .dist-delta.neutral { color: var(--color-text-tertiary); }
+
+  /* Original vs projected bars */
+  .dist-bar-track { position: relative; }
+  .dist-bar-projected { position: absolute; top: 0; left: 0; height: 100%; border-radius: 4px; opacity: 0.35; transition: width 0.3s ease; }
+
+  /* Reset link per row */
+  .reset-link { font-size: 11px; color: var(--color-text-info); cursor: pointer; margin-left: 6px; }
+  .reset-link:hover { text-decoration: underline; }
+
+  /* Clickable resource rows */
+  #resourceTableBody tr { cursor: pointer; }
+  #resourceTableBody tr:hover td { background: var(--color-background-secondary); }
+  #resourceTableBody tr.selected td { background: var(--color-background-info); }
+
+  /* Sortable headers */
+  .sort-header { cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 4px; }
+  .sort-header:hover { color: var(--color-text-primary); }
+  .sort-arrow { font-size: 10px; opacity: 0.5; }
+  .sort-arrow.active { opacity: 1; color: #1D9E75; }
+
+  /* Resource detail panel sections */
+  .resource-finding-item {
+    padding: 8px 0; border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .resource-finding-item:last-child { border-bottom: none; }
+
+  /* Insights views */
+  .insight-intro {
+    font-size: 13px;
+    color: var(--color-text-tertiary);
+    margin-bottom: 14px;
+  }
+
+  .insight-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .insight-card {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 12px;
+  }
+
+  .insight-card-label {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .insight-card-value {
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+
+  .insight-card-meta {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    margin-top: 4px;
+  }
+
+  .insight-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 12px;
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    background: var(--color-background-primary);
+    height: 200px;
+  }
+
+  .insight-bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .insight-bar {
+    width: 16px;
+    border-radius: 3px 3px 0 0;
+    background: #185FA5;
+  }
+
+  .insight-bar-label {
+    font-size: 10px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+  }
+
+  .insight-bar-value {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+  }
+
+  @media (max-width: 1100px) {
+    .insight-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 760px) {
+    .insight-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Onboarding overlay */
+  .onboarding-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+  }
+  .onboarding-overlay.show { opacity: 1; pointer-events: all; }
+
+  .onboarding-modal {
+    background: var(--color-background-primary);
+    border-radius: 16px; width: 640px; max-height: 85vh;
+    overflow-y: auto; position: relative;
+    border: 0.5px solid var(--color-border-tertiary);
+  }
+
+  .ob-header {
+    padding: 24px 28px 0; display: flex; flex-direction: column; gap: 4px;
+    position: sticky; top: 0; background: var(--color-background-primary);
+    z-index: 1; padding-bottom: 16px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .ob-step-indicator { display: flex; gap: 6px; margin-bottom: 16px; }
+  .ob-step-dot {
+    height: 3px; flex: 1; border-radius: 2px;
+    background: var(--color-background-tertiary); transition: background 0.3s;
+  }
+  .ob-step-dot.active { background: #1D9E75; }
+  .ob-step-dot.done { background: #1D9E75; opacity: 0.5; }
+  .ob-title { font-size: 18px; font-weight: 500; color: var(--color-text-primary); }
+  .ob-subtitle { font-size: 13px; color: var(--color-text-tertiary); line-height: 1.5; }
+
+  .ob-body { padding: 20px 28px 28px; }
+
+  .ob-footer {
+    padding: 16px 28px; border-top: 0.5px solid var(--color-border-tertiary);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; bottom: 0; background: var(--color-background-primary);
+  }
+  .ob-footer-right { display: flex; gap: 8px; }
+  .ob-skip { font-size: 13px; color: var(--color-text-tertiary); cursor: pointer; background: none; border: none; font-family: var(--font-sans); padding: 7px 0; }
+  .ob-skip:hover { color: var(--color-text-secondary); }
+
+  /* Integration cards */
+  .integration-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .integration-card {
+    border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md);
+    padding: 16px; cursor: pointer; transition: all 0.2s; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .integration-card:hover { border-color: var(--color-border-secondary); background: var(--color-background-secondary); }
+  .integration-card.connected { border-color: #1D9E75; background: #E1F5EE; }
+  .integration-card .ic-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .integration-card .ic-icon svg { width: 20px; height: 20px; }
+  .integration-card .ic-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+  .integration-card .ic-status { font-size: 11px; color: var(--color-text-tertiary); }
+  .integration-card.connected .ic-status { color: #0F6E56; font-weight: 500; }
+  .ic-count { font-size: 20px; font-weight: 500; color: #1D9E75; margin-top: 8px; }
+  .ic-count-label { font-size: 12px; color: var(--color-text-tertiary); }
+
+  /* Discovery stats */
+  .discovery-stats {
+    display: flex; gap: 16px; margin-top: 16px; padding: 14px 16px;
+    background: var(--color-background-secondary); border-radius: var(--border-radius-md);
+  }
+  .discovery-stat { flex: 1; text-align: center; }
+  .discovery-stat-num { font-size: 22px; font-weight: 500; color: #1D9E75; }
+  .discovery-stat-label { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+
+  /* Pattern inputs */
+  .ob-section { margin-bottom: 20px; }
+  .ob-section:last-child { margin-bottom: 0; }
+  .ob-section-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .ob-section-desc { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 10px; line-height: 1.5; }
+
+  .pattern-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .pattern-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 20px; font-size: 12px;
+    background: var(--color-background-info); color: var(--color-text-info);
+    border: 0.5px solid var(--color-border-info);
+  }
+  .pattern-tag .remove-tag {
+    cursor: pointer; font-size: 14px; line-height: 1; opacity: 0.6;
+    margin-left: 2px;
+  }
+  .pattern-tag .remove-tag:hover { opacity: 1; }
+  .pattern-input-row { display: flex; gap: 6px; }
+  .pattern-input {
+    flex: 1; border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md); padding: 7px 10px;
+    font-size: 13px; font-family: var(--font-sans); outline: none;
+    color: var(--color-text-primary); background: var(--color-background-primary);
+  }
+  .pattern-input:focus { border-color: #1D9E75; }
+  .pattern-input::placeholder { color: var(--color-text-tertiary); }
+
+  /* Crown jewel selector */
+  .crown-jewel-list { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow-y: auto; }
+  .crown-jewel-item {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    border-radius: var(--border-radius-md); cursor: pointer; font-size: 13px;
+    color: var(--color-text-secondary); transition: background 0.1s;
+  }
+  .crown-jewel-item:hover { background: var(--color-background-secondary); }
+  .crown-jewel-item.selected { background: #E1F5EE; color: #0F6E56; font-weight: 500; }
+  .crown-jewel-item .cj-star { font-size: 14px; opacity: 0.3; }
+  .crown-jewel-item.selected .cj-star { opacity: 1; }
+
+  /* Policy toggle */
+  .policy-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .policy-row:last-child { border-bottom: none; }
+  .policy-label { font-size: 13px; color: var(--color-text-primary); }
+  .policy-desc { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+  .toggle {
+    width: 36px; height: 20px; border-radius: 10px; cursor: pointer;
+    background: var(--color-background-tertiary); border: 0.5px solid var(--color-border-secondary);
+    position: relative; transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: white; transition: transform 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+  .toggle.on { background: #1D9E75; border-color: #1D9E75; }
+  .toggle.on::after { transform: translateX(16px); }
+
+  /* Review summary */
+  .review-tier-row {
+    display: flex; align-items: center; gap: 12px; padding: 10px 0;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .review-tier-row:last-child { border-bottom: none; }
+  .review-tier-bar { flex: 1; height: 24px; background: var(--color-background-secondary); border-radius: 4px; overflow: hidden; }
+  .review-tier-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+  .review-tier-count { font-size: 14px; font-weight: 500; min-width: 30px; text-align: right; }
+  .review-resources { margin-top: 12px; max-height: 200px; overflow-y: auto; }
+  .review-resource-item {
+    display: flex; align-items: center; gap: 8px; padding: 6px 0;
+    border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 12px;
+  }
+  .review-resource-item:last-child { border-bottom: none; }
+
+  @media (prefers-color-scheme: dark) {
+    .tier-critical { background: #501313; color: #F09595; }
+    .tier-high { background: #412402; color: #EF9F27; }
+    .tier-medium { background: #042C53; color: #85B7EB; }
+    .tier-low { background: #173404; color: #97C459; }
+    .toast { background: #F0EFE9; color: #1C1C1A; }
+    .integration-card.connected { background: #0a3324; }
+    .crown-jewel-item.selected { background: #0a3324; color: #9FE1CB; }
+    .onboarding-modal { box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      Vault Radar
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Findings</div>
+      <div class="nav-item active" id="nav-findings" onclick="switchView('findings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        All findings
+        <span class="nav-badge">2.8k</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Critical queue
+        <span class="nav-badge">47</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        SLA breaches
+        <span class="nav-badge">12</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Unowned
+        <span class="nav-badge">183</span>
+      </div>
+    </div>
+    <div class="nav-section" style="margin-top:12px">
+      <div class="nav-label">Views</div>
+      <div class="nav-item" id="nav-resourceType" onclick="switchView('resourceType')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        By resource type
+      </div>
+      <div class="nav-item" id="nav-team" onclick="switchView('team')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        By team
+      </div>
+      <div class="nav-item" id="nav-riskTrends" onclick="switchView('riskTrends')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Risk trends
+      </div>
+    </div>
+    <div class="nav-section" style="margin-top:12px">
+      <div class="nav-label">Automation</div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Policies
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 003.41 2.6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7 2 2 0 011.72 2v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07"/></svg>
+        Integrations
+      </div>
+    </div>
+    <div class="nav-section" style="margin-top:12px">
+      <div class="nav-label">Settings</div>
+      <div class="nav-item" id="nav-resourceConfig" onclick="switchView('resourceConfig')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        Resource importance
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">All findings</div>
+      <div class="topbar-actions" id="findingsActions">
+        <button class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg>
+          Save view
+        </button>
+        <button class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          Configure alerts
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add policy
+        </button>
+      </div>
+      <div class="topbar-actions hidden" id="configActions">
+        <span class="overrides-summary hidden" id="overridesSummary"></span>
+        <button class="btn" onclick="showOnboarding()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Run setup wizard
+        </button>
+        <button class="btn" onclick="resetAllTiers()">Reset all to inferred</button>
+        <button class="btn btn-primary" onclick="saveConfigChanges()">Save changes</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div id="findingsView">
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">Total findings</div>
+          <div class="metric-value info">2,847</div>
+          <div class="metric-delta">+143 this week</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Critical / live</div>
+          <div class="metric-value danger">47</div>
+          <div class="metric-delta">12 SLA breached</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Auto-resolved</div>
+          <div class="metric-value success">1,204</div>
+          <div class="metric-delta">42% of backlog</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Avg time to fix</div>
+          <div class="metric-value warning">3.2d</div>
+          <div class="metric-delta">-0.8d vs last month</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Findings</div>
+        <div class="filters">
+          <span class="filter-chip active" onclick="setFilter('all',this)">All</span>
+          <span class="filter-chip" onclick="setFilter('critical',this)">Critical</span>
+          <span class="filter-chip" onclick="setFilter('live',this)">Live only</span>
+          <span class="filter-chip" onclick="setFilter('unowned',this)">Unowned</span>
+          <span class="filter-chip" onclick="setFilter('sla',this)">SLA breach</span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input placeholder="Search by secret type, repo, owner..." id="searchInput" oninput="filterTable()">
+          </div>
+          <select class="filter-select" id="resourceFilter" onchange="filterTable()">
+            <option value="">All resources</option>
+            <option value="github">GitHub</option>
+            <option value="slack">Slack</option>
+            <option value="aws">AWS</option>
+            <option value="wiki">Wiki</option>
+          </select>
+          <select class="filter-select" id="envFilter" onchange="filterTable()">
+            <option value="">All environments</option>
+            <option value="prod">Production</option>
+            <option value="staging">Staging</option>
+            <option value="dev">Dev</option>
+          </select>
+          <select class="filter-select" id="sortBy" onchange="filterTable()">
+            <option value="score">Sort: Risk score</option>
+            <option value="age">Sort: Age</option>
+            <option value="sev">Sort: Severity</option>
+          </select>
+        </div>
+        <div id="bulkBar" class="bulk-bar hidden">
+          <div class="bulk-label" id="bulkLabel">0 findings selected</div>
+          <div class="bulk-actions">
+            <button class="btn" onclick="bulkAction('assign')">Assign</button>
+            <button class="btn" onclick="bulkAction('suppress')">Suppress</button>
+            <button class="btn" onclick="bulkAction('escalate')">Escalate</button>
+            <button class="btn" style="color:var(--color-text-danger)" onclick="bulkAction('close')">Close</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th class="col-check"><input type="checkbox" class="check" id="checkAll" onchange="toggleAll(this)"></th>
+              <th class="col-sev">Severity</th>
+              <th class="col-secret">Secret type</th>
+              <th class="col-resource">Resource</th>
+              <th class="col-score">Risk score</th>
+              <th class="col-validity">Validity</th>
+              <th class="col-owner">Owner</th>
+              <th class="col-age">Age</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      </div><!-- end findingsView -->
+
+      <div id="resourceTypeView" class="hidden"></div>
+
+      <div id="teamView" class="hidden"></div>
+
+      <div id="riskTrendsView" class="hidden"></div>
+
+      <div id="resourceConfigView" class="hidden">
+        <div class="config-header">
+          <p>Set importance tiers for connected resources. Tiers weight the composite risk score — changing a tier recalculates all associated finding scores.</p>
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Critical resources</div><div class="metric-value danger" id="tierCountCritical">0</div></div>
+          <div class="metric"><div class="metric-label">High resources</div><div class="metric-value warning" id="tierCountHigh">0</div></div>
+          <div class="metric"><div class="metric-label">Medium resources</div><div class="metric-value info" id="tierCountMedium">0</div></div>
+          <div class="metric"><div class="metric-label">Low resources</div><div class="metric-value success" id="tierCountLow">0</div></div>
+        </div>
+        <div class="distribution-section">
+          <div class="distribution-title">Score distribution impact</div>
+          <div id="distributionChart"></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <div class="search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input placeholder="Search resources..." id="resourceSearchInput" oninput="filterResources()">
+            </div>
+            <select class="filter-select" id="resourceTypeFilter" onchange="filterResources()"><option value="">All types</option><option value="github">GitHub</option><option value="slack">Slack</option><option value="aws">AWS</option><option value="wiki">Wiki</option></select>
+            <select class="filter-select" id="tierFilter" onchange="filterResources()"><option value="">All tiers</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+          </div>
+          <table>
+            <thead><tr>
+              <th style="width:180px"><span class="sort-header" data-sort="name" onclick="setResourceSort('name')">Resource <span class="sort-arrow">▲</span></span></th>
+              <th style="width:100px"><span class="sort-header" data-sort="type" onclick="setResourceSort('type')">Type <span class="sort-arrow">▲</span></span></th>
+              <th style="width:80px">Env</th>
+              <th style="width:200px"><span class="sort-header" data-sort="tier" onclick="setResourceSort('tier')">Inferred tier <span class="sort-arrow active">▲</span></span></th>
+              <th style="width:120px">Current tier</th>
+              <th style="width:80px"><span class="sort-header" data-sort="findings" onclick="setResourceSort('findings')">Findings <span class="sort-arrow">▲</span></span></th>
+              <th style="width:110px"><span class="sort-header" data-sort="score" onclick="setResourceSort('score')">Avg score <span class="sort-arrow">▲</span></span></th>
+            </tr></thead>
+            <tbody id="resourceTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="right-panel" id="rightPanel">
+    <div class="empty-panel" id="emptyPanel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+      <p>Select a finding to see details and take action</p>
+    </div>
+    <div id="detailPanel" class="hidden"></div>
+  </div>
+</div>
+
+<!-- Onboarding overlay -->
+<div class="onboarding-overlay" id="onboardingOverlay">
+  <div class="onboarding-modal">
+    <div class="ob-header">
+      <div class="ob-step-indicator"><div class="ob-step-dot active" id="obDot0"></div><div class="ob-step-dot" id="obDot1"></div><div class="ob-step-dot" id="obDot2"></div></div>
+      <div class="ob-title" id="obTitle">Connect your sources</div>
+      <div class="ob-subtitle" id="obSubtitle">Vault Radar scans your connected sources for leaked secrets. The more we can see, the better we can prioritize.</div>
+    </div>
+    <div class="ob-body" id="obBody"></div>
+    <div class="ob-footer">
+      <button class="ob-skip" id="obSkip" onclick="closeOnboarding()">Skip setup</button>
+      <div class="ob-footer-right">
+        <button class="btn" id="obBack" onclick="obPrev()" style="display:none">Back</button>
+        <button class="btn btn-primary" id="obNext" onclick="obNext()">Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const findings = [
+  {
+    id: 1, sev: 'critical', type: 'AWS access key', resource: 'infra-prod',
+    resourceType: 'github', env: 'prod', score: 98, validity: 'live',
+    owner: 'platform-team', ownerInitials: 'PT', ownerColor: 'av-blue',
+    age: '2h', ageNum: 0.08, slaBreach: true,
+    blastRadius: ['3 repos', 'EC2 full access', 'RDS read'],
+    factors: { secretType: 95, resourceImportance: 100, exposure: 100, validity: 100, age: 95 },
+    description: 'AWS_ACCESS_KEY_ID committed to main branch of infra-prod. Key has EC2 full access and RDS read permissions. Still live and valid.',
+    rotation: 'Rotate via AWS IAM console or use the auto-rotate action below.'
+  },
+  {
+    id: 2, sev: 'critical', type: 'Stripe secret key', resource: 'payments-api',
+    resourceType: 'github', env: 'prod', score: 95, validity: 'live',
+    owner: 'payments-team', ownerInitials: 'PA', ownerColor: 'av-teal',
+    age: '6h', ageNum: 0.25, slaBreach: false,
+    blastRadius: ['Stripe production', 'Customer charges', 'Refund API'],
+    factors: { secretType: 100, resourceImportance: 100, exposure: 90, validity: 100, age: 80 },
+    description: 'Stripe secret key (sk_live_*) found in payments-api repo. Has full charge and refund permissions on production account.',
+    rotation: 'Contact Stripe dashboard to roll the key immediately.'
+  },
+  {
+    id: 3, sev: 'high', type: 'GitHub PAT', resource: '#engineering-secrets',
+    resourceType: 'slack', env: 'unknown', score: 72, validity: 'live',
+    owner: 'jake.m', ownerInitials: 'JM', ownerColor: 'av-purple',
+    age: '1d', ageNum: 1, slaBreach: false,
+    blastRadius: ['Public Slack channel', 'Org-wide read'],
+    factors: { secretType: 70, resourceImportance: 40, exposure: 85, validity: 100, age: 75 },
+    description: 'GitHub Personal Access Token pasted in a public Slack channel. Token has repo read permissions across the org.',
+    rotation: 'Revoke in GitHub Settings > Developer Settings > Personal access tokens.'
+  },
+  {
+    id: 4, sev: 'high', type: 'Database password', resource: 'data-pipeline',
+    resourceType: 'github', env: 'staging', score: 68, validity: 'live',
+    owner: 'data-team', ownerInitials: 'DT', ownerColor: 'av-amber',
+    age: '3d', ageNum: 3, slaBreach: false,
+    blastRadius: ['Staging DB', 'Analytics cluster'],
+    factors: { secretType: 75, resourceImportance: 70, exposure: 70, validity: 100, age: 60 },
+    description: 'Postgres password hardcoded in data pipeline config. Points to staging database but password may be reused in prod.',
+    rotation: 'Update DB_PASSWORD env var in CI and rotate in RDS parameter store.'
+  },
+  {
+    id: 5, sev: 'critical', type: 'GCP service account', resource: 'ml-training',
+    resourceType: 'aws', env: 'prod', score: 91, validity: 'live',
+    owner: 'ml-team', ownerInitials: 'ML', ownerColor: 'av-blue',
+    age: '12h', ageNum: 0.5, slaBreach: true,
+    blastRadius: ['GCS buckets', 'BigQuery', 'Vertex AI'],
+    factors: { secretType: 90, resourceImportance: 90, exposure: 95, validity: 100, age: 88 },
+    description: 'GCP service account key JSON embedded in ML training script. Has access to production GCS buckets and BigQuery datasets.',
+    rotation: 'Delete the service account key in GCP IAM and create a new one.'
+  },
+  {
+    id: 6, sev: 'medium', type: 'Slack webhook', resource: 'internal-wiki',
+    resourceType: 'wiki', env: 'unknown', score: 41, validity: 'live',
+    owner: 'devrel-team', ownerInitials: 'DR', ownerColor: 'av-teal',
+    age: '14d', ageNum: 14, slaBreach: false,
+    blastRadius: ['#alerts channel'],
+    factors: { secretType: 45, resourceImportance: 20, exposure: 50, validity: 100, age: 30 },
+    description: 'Slack incoming webhook URL found in internal wiki page. Can post to #alerts channel.',
+    rotation: 'Regenerate webhook in Slack App settings.'
+  },
+  {
+    id: 7, sev: 'low', type: 'SendGrid API key', resource: 'notifications-dev',
+    resourceType: 'github', env: 'dev', score: 22, validity: 'expired',
+    owner: 'backend-team', ownerInitials: 'BE', ownerColor: 'av-purple',
+    age: '60d', ageNum: 60, slaBreach: false,
+    blastRadius: ['Dev email only'],
+    factors: { secretType: 50, resourceImportance: 10, exposure: 20, validity: 0, age: 10 },
+    description: 'SendGrid API key in dev branch config. Key appears to be expired and the repo is a dev sandbox. Low risk.',
+    rotation: 'Key already expired. No action required unless reactivated.'
+  },
+  {
+    id: 8, sev: 'high', type: 'OpenAI API key', resource: 'llm-service',
+    resourceType: 'github', env: 'prod', score: 83, validity: 'live',
+    owner: null, ownerInitials: '?', ownerColor: 'av-amber',
+    age: '4h', ageNum: 0.17, slaBreach: false,
+    blastRadius: ['GPT-4 API', 'Billing exposure'],
+    factors: { secretType: 80, resourceImportance: 85, exposure: 90, validity: 100, age: 85 },
+    description: 'OpenAI API key found in production LLM service. Key has no spending limit set. No repo owner identified — needs manual assignment.',
+    rotation: 'Rotate in OpenAI platform settings. Set spending limits immediately.'
+  }
+];
+
+const resourceIcons = {
+  github: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>`,
+  slack: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 01-2.52 2.523A2.528 2.528 0 010 15.165a2.527 2.527 0 012.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 012.521-2.52 2.527 2.527 0 012.521 2.52v6.313A2.528 2.528 0 018.834 24a2.528 2.528 0 01-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 01-2.521-2.52A2.528 2.528 0 018.834 0a2.528 2.528 0 012.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 012.521 2.521 2.528 2.528 0 01-2.521 2.521H2.522A2.528 2.528 0 010 8.834a2.528 2.528 0 012.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 012.522-2.521A2.528 2.528 0 0124 8.834a2.528 2.528 0 01-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 01-2.523 2.521 2.527 2.527 0 01-2.52-2.521V2.522A2.527 2.527 0 0115.165 0a2.528 2.528 0 012.523 2.522v6.312z"/></svg>`,
+  aws: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.763 10.036c0 .296.032.535.088.71.064.176.144.368.256.576.04.063.056.127.056.183 0 .08-.048.16-.152.24l-.503.335a.383.383 0 01-.208.072c-.08 0-.16-.04-.239-.112a2.47 2.47 0 01-.287-.375 6.18 6.18 0 01-.248-.471c-.622.734-1.405 1.101-2.347 1.101-.67 0-1.205-.191-1.596-.574-.391-.384-.59-.894-.59-1.533 0-.678.239-1.23.726-1.644.487-.415 1.133-.623 1.955-.623.272 0 .551.024.846.064.296.04.6.104.918.176v-.583c0-.607-.127-1.03-.375-1.277-.255-.248-.686-.367-1.3-.367-.28 0-.568.031-.863.103-.295.072-.583.16-.862.272a2.287 2.287 0 01-.28.104.488.488 0 01-.127.023c-.112 0-.168-.08-.168-.247v-.391c0-.128.016-.224.056-.28a.597.597 0 01.224-.167c.279-.144.614-.264 1.005-.36a4.84 4.84 0 011.246-.151c.95 0 1.644.216 2.091.647.439.43.662 1.085.662 1.963v2.586z"/></svg>`,
+  wiki: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`
+};
+
+let selectedId = null;
+let checkedIds = new Set();
+let currentFilter = 'all';
+let displayedFindings = [...findings];
+
+function sevOrder(s) { return { critical: 0, high: 1, medium: 2, low: 3, info: 4 }[s] || 5; }
+
+function filterTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const resource = document.getElementById('resourceFilter').value;
+  const env = document.getElementById('envFilter').value;
+  const sort = document.getElementById('sortBy').value;
+
+  let filtered = findings.filter(f => {
+    if (currentFilter === 'critical' && f.sev !== 'critical') return false;
+    if (currentFilter === 'live' && f.validity !== 'live') return false;
+    if (currentFilter === 'unowned' && f.owner !== null) return false;
+    if (currentFilter === 'sla' && !f.slaBreach) return false;
+    if (search && !f.type.toLowerCase().includes(search) && !f.resource.toLowerCase().includes(search) && !(f.owner || '').toLowerCase().includes(search)) return false;
+    if (resource && f.resourceType !== resource) return false;
+    if (env && f.env !== env) return false;
+    return true;
+  });
+
+  if (sort === 'score') filtered.sort((a, b) => b.score - a.score);
+  else if (sort === 'age') filtered.sort((a, b) => b.ageNum - a.ageNum);
+  else if (sort === 'sev') filtered.sort((a, b) => sevOrder(a.sev) - sevOrder(b.sev));
+
+  displayedFindings = filtered;
+  renderTable();
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  filterTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  if (!displayedFindings.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--color-text-tertiary);font-size:13px">No findings match current filters</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = displayedFindings.map(f => {
+    const checked = checkedIds.has(f.id);
+    const isSelected = selectedId === f.id;
+    const scoreClass = `sev-score-${f.sev}`;
+    const scoreColor = f.sev === 'critical' ? '#E24B4A' : f.sev === 'high' ? '#EF9F27' : f.sev === 'medium' ? '#BA7517' : '#639922';
+    const envClass = { prod: 'env-prod', staging: 'env-staging', dev: 'env-dev', unknown: 'env-unknown' }[f.env] || 'env-unknown';
+    const envLabel = { prod: 'Prod', staging: 'Staging', dev: 'Dev', unknown: '—' }[f.env] || '—';
+    const resourceLabel = { github: 'GitHub', slack: 'Slack', aws: 'AWS', wiki: 'Wiki' }[f.resourceType] || f.resourceType;
+
+    return `<tr class="${isSelected ? 'selected' : ''}" onclick="selectFinding(${f.id})">
+      <td class="col-check" onclick="event.stopPropagation()">
+        <input type="checkbox" class="check" data-id="${f.id}" ${checked ? 'checked' : ''} onchange="toggleCheck(${f.id},this)">
+      </td>
+      <td class="col-sev"><span class="sev-badge sev-${f.sev}">${f.sev}</span></td>
+      <td class="col-secret">
+        <div class="text-truncate" style="font-size:13px">${f.type}</div>
+        <div class="text-truncate" style="font-size:11px;color:var(--color-text-tertiary)">${f.resource}</div>
+      </td>
+      <td class="col-resource">
+        <div class="resource-tag">
+          <div class="resource-icon ri-${f.resourceType}">${resourceIcons[f.resourceType] || ''}</div>
+          <span class="text-truncate">${resourceLabel}</span>
+          <span class="${envClass} env-tag">${envLabel}</span>
+        </div>
+      </td>
+      <td class="col-score ${scoreClass}">
+        <div class="score-bar">
+          <div class="score-track"><div class="score-fill" style="width:${f.score}%;background:${scoreColor}"></div></div>
+          <div class="score-num">${f.score}</div>
+        </div>
+      </td>
+      <td class="col-validity">
+        <span style="display:flex;align-items:center;gap:5px">
+          <span class="validity-dot vd-${f.validity}"></span>
+          <span style="font-size:12px;color:var(--color-text-secondary)">${f.validity}</span>
+        </span>
+      </td>
+      <td class="col-owner">
+        <div class="owner-pill">
+          <div class="avatar ${f.ownerColor}">${f.ownerInitials}</div>
+          <span class="text-truncate">${f.owner || 'Unowned'}</span>
+        </div>
+      </td>
+      <td class="col-age">
+        <span class="age-text">${f.age}</span>
+        ${f.slaBreach ? '<div style="font-size:10px;color:#A32D2D;font-weight:500">SLA!</div>' : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function selectFinding(id) {
+  selectedId = selectedId === id ? null : id;
+  renderTable();
+  renderDetail();
+}
+
+function renderDetail() {
+  const panel = document.getElementById('detailPanel');
+  const empty = document.getElementById('emptyPanel');
+
+  if (!selectedId) {
+    panel.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  const f = findings.find(x => x.id === selectedId);
+  empty.classList.add('hidden');
+  panel.classList.remove('hidden');
+
+  const factors = [
+    { label: 'Secret type', val: f.factors.secretType, color: '#E24B4A' },
+    { label: 'Resource importance', val: f.factors.resourceImportance, color: '#185FA5' },
+    { label: 'Exposure surface', val: f.factors.exposure, color: '#854F0B' },
+    { label: 'Validity', val: f.factors.validity, color: '#1D9E75' },
+    { label: 'Age signal', val: f.factors.age, color: '#534AB7' },
+  ];
+
+  panel.innerHTML = `
+    <div class="panel-header">
+      <span class="sev-badge sev-${f.sev}">${f.sev}</span>
+      <div class="panel-title" style="font-size:13px">${f.type}</div>
+      <button class="panel-close" onclick="selectFinding(${f.id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Summary</div>
+      <p style="font-size:12px;color:var(--color-text-secondary);line-height:1.6">${f.description}</p>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Risk score — ${f.score}/100</div>
+      <div class="score-breakdown">
+        ${factors.map(fc => `
+          <div class="score-factor">
+            <div class="score-factor-label">${fc.label}</div>
+            <div class="score-factor-track"><div class="score-factor-fill" style="width:${fc.val}%;background:${fc.color}"></div></div>
+            <div class="score-factor-val">${fc.val}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Blast radius</div>
+      <div style="display:flex;flex-wrap:wrap">
+        ${f.blastRadius.map(b => `<span class="blast-chip">${b}</span>`).join('')}
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Details</div>
+      <div class="detail-row">
+        <span class="detail-label">Resource</span>
+        <span class="detail-value">${f.resource}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Environment</span>
+        <span class="detail-value">${f.env}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Validity</span>
+        <span class="detail-value" style="display:flex;align-items:center;gap:5px;justify-content:flex-end">
+          <span class="validity-dot vd-${f.validity}"></span>${f.validity}
+        </span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Owner</span>
+        <span class="detail-value">${f.owner || 'Unowned'}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Age</span>
+        <span class="detail-value">${f.age}</span>
+      </div>
+      ${f.slaBreach ? `
+        <div style="margin-top:8px">
+          <div style="font-size:11px;color:#A32D2D;font-weight:500;margin-bottom:4px">SLA breached — critical findings require resolution within 4h</div>
+          <div class="sla-bar">
+            <div class="sla-track"><div class="sla-fill" style="width:100%;background:#E24B4A"></div></div>
+            <span class="sla-label sla-overdue">Overdue</span>
+          </div>
+        </div>` : ''}
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Remediation</div>
+      <p style="font-size:12px;color:var(--color-text-secondary);line-height:1.6">${f.rotation}</p>
+    </div>
+    <div class="action-buttons">
+      <button class="action-btn success-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        Auto-rotate secret
+      </button>
+      <button class="action-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg>
+        Assign to team
+      </button>
+      <button class="action-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Create Jira ticket
+      </button>
+      <button class="action-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+        Suppress as false positive
+      </button>
+    </div>
+  `;
+}
+
+function toggleCheck(id, el) {
+  if (el.checked) checkedIds.add(id);
+  else checkedIds.delete(id);
+  updateBulkBar();
+}
+
+function toggleAll(el) {
+  displayedFindings.forEach(f => {
+    if (el.checked) checkedIds.add(f.id);
+    else checkedIds.delete(f.id);
+  });
+  renderTable();
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulkBar');
+  const label = document.getElementById('bulkLabel');
+  if (checkedIds.size > 0) {
+    bar.classList.remove('hidden');
+    label.textContent = `${checkedIds.size} finding${checkedIds.size > 1 ? 's' : ''} selected`;
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+function bulkAction(action) {
+  console.log(`Bulk ${action} on findings:`, [...checkedIds]);
+  checkedIds.clear();
+  updateBulkBar();
+  renderTable();
+}
+
+// ── Resource importance data ──
+const resources = [
+  { id: 1, name: 'infra-prod', type: 'github', env: 'prod', visibility: 'Private', inferredTier: 'critical', inferredReason: 'Named *-prod, infrastructure repo', currentTier: null, findingCount: 1, avgScore: 98 },
+  { id: 2, name: 'payments-api', type: 'github', env: 'prod', visibility: 'Private', inferredTier: 'critical', inferredReason: 'Contains payment processing code', currentTier: null, findingCount: 1, avgScore: 95 },
+  { id: 3, name: 'api-gateway', type: 'github', env: 'prod', visibility: 'Private', inferredTier: 'critical', inferredReason: 'API ingress point, prod', currentTier: null, findingCount: 0, avgScore: 0 },
+  { id: 4, name: 'terraform-modules', type: 'github', env: 'prod', visibility: 'Private', inferredTier: 'critical', inferredReason: 'Infrastructure as code, prod', currentTier: null, findingCount: 0, avgScore: 0 },
+  { id: 5, name: 'auth-service', type: 'github', env: 'prod', visibility: 'Private', inferredTier: 'critical', inferredReason: 'Authentication service, prod', currentTier: null, findingCount: 0, avgScore: 0 },
+  { id: 6, name: 'ml-training', type: 'github', env: 'prod', visibility: 'Private', inferredTier: 'high', inferredReason: 'ML workloads, prod environment', currentTier: null, findingCount: 1, avgScore: 91 },
+  { id: 7, name: 'llm-service', type: 'github', env: 'prod', visibility: 'Private', inferredTier: 'high', inferredReason: 'Production service, no CODEOWNERS', currentTier: null, findingCount: 1, avgScore: 83 },
+  { id: 8, name: 'frontend-app', type: 'github', env: 'prod', visibility: 'Public', inferredTier: 'high', inferredReason: 'Public repo, prod deployment', currentTier: null, findingCount: 0, avgScore: 0 },
+  { id: 9, name: '#general', type: 'slack', env: 'unknown', visibility: 'Public', inferredTier: 'high', inferredReason: 'Public channel, org-wide access', currentTier: null, findingCount: 0, avgScore: 0 },
+  { id: 10, name: '#engineering-secrets', type: 'slack', env: 'unknown', visibility: 'Public', inferredTier: 'high', inferredReason: 'Public channel, "secrets" in name', currentTier: null, findingCount: 1, avgScore: 72 },
+  { id: 11, name: 'data-pipeline', type: 'github', env: 'staging', visibility: 'Private', inferredTier: 'medium', inferredReason: 'Staging environment', currentTier: null, findingCount: 1, avgScore: 68 },
+  { id: 12, name: 'staging-db-scripts', type: 'github', env: 'staging', visibility: 'Private', inferredTier: 'medium', inferredReason: 'Database scripts, staging env', currentTier: null, findingCount: 0, avgScore: 0 },
+  { id: 13, name: '#ops-alerts', type: 'slack', env: 'unknown', visibility: 'Private', inferredTier: 'medium', inferredReason: 'Private ops channel', currentTier: null, findingCount: 0, avgScore: 0 },
+  { id: 14, name: 'internal-wiki', type: 'wiki', env: 'unknown', visibility: 'Internal', inferredTier: 'low', inferredReason: 'Internal documentation only', currentTier: null, findingCount: 1, avgScore: 41 },
+  { id: 15, name: 'notifications-dev', type: 'github', env: 'dev', visibility: 'Private', inferredTier: 'low', inferredReason: 'Dev sandbox, named *-dev', currentTier: null, findingCount: 1, avgScore: 22 },
+  { id: 16, name: 'sandbox-experiments', type: 'github', env: 'dev', visibility: 'Private', inferredTier: 'low', inferredReason: 'Dev sandbox, experimental', currentTier: null, findingCount: 0, avgScore: 0 },
+];
+
+// Tier multiplier weights for score recalculation
+const tierMultipliers = { critical: 1.0, high: 0.75, medium: 0.5, low: 0.25 };
+
+let currentView = 'findings';
+let displayedResources = [...resources];
+let selectedResourceId = null;
+let resourceSortCol = 'tier';
+let resourceSortDir = 'asc';
+
+const viewTitles = {
+  findings: 'All findings',
+  resourceType: 'Findings by resource type',
+  team: 'Findings by team',
+  riskTrends: 'Risk trends',
+  resourceConfig: 'Resource importance',
+};
+
+// Store original finding scores for recalculation
+const originalScores = {};
+findings.forEach(f => { originalScores[f.id] = f.score; });
+
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const nav = document.getElementById('nav-' + view);
+  if (nav) nav.classList.add('active');
+
+  document.getElementById('topbarTitle').textContent = viewTitles[view] || 'Vault Radar';
+  document.getElementById('findingsView').classList.toggle('hidden', view !== 'findings');
+  document.getElementById('resourceTypeView').classList.toggle('hidden', view !== 'resourceType');
+  document.getElementById('teamView').classList.toggle('hidden', view !== 'team');
+  document.getElementById('riskTrendsView').classList.toggle('hidden', view !== 'riskTrends');
+  document.getElementById('resourceConfigView').classList.toggle('hidden', view !== 'resourceConfig');
+  document.getElementById('findingsActions').classList.toggle('hidden', view !== 'findings' && view !== 'resourceType' && view !== 'team' && view !== 'riskTrends');
+  document.getElementById('configActions').classList.toggle('hidden', view !== 'resourceConfig');
+
+  const rp = document.getElementById('rightPanel');
+  if (view === 'resourceConfig') {
+    rp.style.display = '';
+    selectedResourceId = null;
+    renderResourceConfig();
+    renderResourceDetail();
+  } else if (view === 'findings') {
+    rp.style.display = '';
+    selectedId = null;
+    renderDetail();
+  } else {
+    rp.style.display = 'none';
+  }
+
+  if (view === 'resourceType') {
+    renderResourceTypeView();
+  }
+  if (view === 'team') {
+    renderTeamView();
+  }
+  if (view === 'riskTrends') {
+    renderRiskTrendsView();
+  }
+}
+
+function renderResourceTypeView() {
+  const labelByType = { github: 'GitHub', slack: 'Slack', aws: 'AWS', wiki: 'Wiki' };
+  const types = ['github', 'slack', 'aws', 'wiki'];
+  const typeStats = types.map(type => {
+    const typeFindings = findings.filter(f => f.resourceType === type);
+    const typeResources = resources.filter(r => r.type === type);
+    const liveCount = typeFindings.filter(f => f.validity === 'live').length;
+    const criticalCount = typeFindings.filter(f => f.sev === 'critical').length;
+    const avgScore = typeFindings.length ? Math.round(typeFindings.reduce((sum, f) => sum + f.score, 0) / typeFindings.length) : 0;
+    const topFinding = typeFindings.slice().sort((a, b) => b.score - a.score)[0];
+    return {
+      type,
+      label: labelByType[type],
+      resources: typeResources.length,
+      findings: typeFindings.length,
+      liveCount,
+      criticalCount,
+      avgScore,
+      topRisk: topFinding ? `${topFinding.type} (${topFinding.score})` : 'No findings'
+    };
+  });
+
+  const totalFindings = findings.length;
+  const totalLive = findings.filter(f => f.validity === 'live').length;
+  const highestType = typeStats.slice().sort((a, b) => b.avgScore - a.avgScore)[0];
+  const coverage = Math.round((typeStats.filter(s => s.findings > 0).length / typeStats.length) * 100);
+
+  const view = document.getElementById('resourceTypeView');
+  view.innerHTML = `
+    <p class="insight-intro">Compare where findings cluster by source type and identify which connector is driving the riskiest backlog.</p>
+    <div class="insight-grid">
+      <div class="insight-card"><div class="insight-card-label">Total findings</div><div class="insight-card-value">${totalFindings}</div><div class="insight-card-meta">Across ${resources.length} modeled resources</div></div>
+      <div class="insight-card"><div class="insight-card-label">Live findings</div><div class="insight-card-value" style="color:#A32D2D">${totalLive}</div><div class="insight-card-meta">Require active remediation</div></div>
+      <div class="insight-card"><div class="insight-card-label">Highest risk type</div><div class="insight-card-value">${highestType.label}</div><div class="insight-card-meta">Avg score ${highestType.avgScore}</div></div>
+      <div class="insight-card"><div class="insight-card-label">Source coverage</div><div class="insight-card-value">${coverage}%</div><div class="insight-card-meta">Types with active findings</div></div>
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:16px">
+      <div class="table-toolbar"><div class="section-title" style="margin:0">Resource type summary</div></div>
+      <table>
+        <thead><tr><th>Type</th><th>Resources</th><th>Findings</th><th>Live</th><th>Critical</th><th>Avg score</th><th>Top risk signal</th></tr></thead>
+        <tbody>
+          ${typeStats.map(s => `<tr>
+            <td><span class="resource-tag"><span class="resource-icon ri-${s.type}">${resourceIcons[s.type] || ''}</span>${s.label}</span></td>
+            <td>${s.resources}</td>
+            <td>${s.findings}</td>
+            <td>${s.liveCount}</td>
+            <td>${s.criticalCount}</td>
+            <td>${s.avgScore || '—'}</td>
+            <td style="font-size:12px;color:var(--color-text-secondary)">${s.topRisk}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="insight-bars">
+      ${typeStats.map(s => {
+        const height = Math.max(8, Math.round((s.avgScore / 100) * 130));
+        return `<div class="insight-bar-col"><div class="insight-bar" style="height:${height}px"></div><div class="insight-bar-value">${s.avgScore || 0}</div><div class="insight-bar-label">${s.label}</div></div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function normalizeTeamName(owner) {
+  if (!owner) return 'Unowned';
+  if (owner.includes('-team')) return owner;
+  if (owner.includes('.')) return 'Individual owners';
+  return owner;
+}
+
+function renderTeamView() {
+  const teamMap = {};
+  findings.forEach(f => {
+    const team = normalizeTeamName(f.owner);
+    if (!teamMap[team]) {
+      teamMap[team] = { name: team, findings: 0, live: 0, critical: 0, sla: 0, scoreSum: 0, maxAge: 0 };
+    }
+    teamMap[team].findings += 1;
+    teamMap[team].live += f.validity === 'live' ? 1 : 0;
+    teamMap[team].critical += f.sev === 'critical' ? 1 : 0;
+    teamMap[team].sla += f.slaBreach ? 1 : 0;
+    teamMap[team].scoreSum += f.score;
+    teamMap[team].maxAge = Math.max(teamMap[team].maxAge, f.ageNum);
+  });
+
+  const teams = Object.values(teamMap).map(t => ({
+    ...t,
+    avgScore: Math.round(t.scoreSum / t.findings),
+    slaCompliance: Math.max(0, 100 - Math.round((t.sla / t.findings) * 100)),
+  })).sort((a, b) => b.avgScore - a.avgScore);
+
+  const totalTeams = teams.length;
+  const busiest = teams.slice().sort((a, b) => b.findings - a.findings)[0];
+  const worstSla = teams.slice().sort((a, b) => a.slaCompliance - b.slaCompliance)[0];
+  const unownedBacklog = teams.find(t => t.name === 'Unowned');
+
+  const view = document.getElementById('teamView');
+  view.innerHTML = `
+    <p class="insight-intro">Understand ownership health, backlog concentration, and SLA pressure by team to route remediation faster.</p>
+    <div class="insight-grid">
+      <div class="insight-card"><div class="insight-card-label">Teams with findings</div><div class="insight-card-value">${totalTeams}</div><div class="insight-card-meta">Includes shared and individual ownership</div></div>
+      <div class="insight-card"><div class="insight-card-label">Largest backlog</div><div class="insight-card-value" style="font-size:18px">${busiest.name}</div><div class="insight-card-meta">${busiest.findings} findings</div></div>
+      <div class="insight-card"><div class="insight-card-label">Lowest SLA compliance</div><div class="insight-card-value" style="font-size:18px;color:#A32D2D">${worstSla.name}</div><div class="insight-card-meta">${worstSla.slaCompliance}%</div></div>
+      <div class="insight-card"><div class="insight-card-label">Unowned findings</div><div class="insight-card-value" style="color:#A32D2D">${unownedBacklog ? unownedBacklog.findings : 0}</div><div class="insight-card-meta">Needs routing policy</div></div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-toolbar"><div class="section-title" style="margin:0">Team backlog and SLA table</div></div>
+      <table>
+        <thead><tr><th>Team</th><th>Findings</th><th>Live</th><th>Critical</th><th>Avg score</th><th>SLA compliance</th><th>Oldest age signal</th></tr></thead>
+        <tbody>
+          ${teams.map(t => `<tr>
+            <td>${t.name === 'Unowned' ? '<span style="color:#A32D2D;font-weight:500">Unowned</span>' : t.name}</td>
+            <td>${t.findings}</td>
+            <td>${t.live}</td>
+            <td>${t.critical}</td>
+            <td>${t.avgScore}</td>
+            <td>${t.slaCompliance}%</td>
+            <td>${t.maxAge.toFixed(2)}d</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function buildTrendSeries() {
+  const labels = ['W-7', 'W-6', 'W-5', 'W-4', 'W-3', 'W-2', 'W-1', 'Now'];
+  const series = [];
+  let open = 38;
+  labels.forEach((label, i) => {
+    const discovered = 10 + (i % 3) + i;
+    const resolved = 8 + Math.floor(i * 1.4);
+    open = Math.max(8, open + discovered - resolved);
+    const avgRisk = Math.max(35, 74 - i * 3 + (i % 2 ? 2 : -1));
+    const mttr = Math.max(1.8, 5.1 - i * 0.35);
+    const sla = Math.min(96, 68 + i * 3);
+    series.push({ label, discovered, resolved, open, avgRisk, mttr, sla });
+  });
+  return series;
+}
+
+function renderRiskTrendsView() {
+  const series = buildTrendSeries();
+  const latest = series[series.length - 1];
+  const previous = series[series.length - 2];
+  const openDelta = latest.open - previous.open;
+  const riskDelta = latest.avgRisk - previous.avgRisk;
+  const mttrDelta = (latest.mttr - previous.mttr).toFixed(1);
+  const maxOpen = Math.max(...series.map(s => s.open));
+
+  const view = document.getElementById('riskTrendsView');
+  view.innerHTML = `
+    <p class="insight-intro">Track whether backlog, average risk, MTTR, and SLA performance are improving week over week.</p>
+    <div class="insight-grid">
+      <div class="insight-card"><div class="insight-card-label">Open high-risk findings</div><div class="insight-card-value">${latest.open}</div><div class="insight-card-meta">${openDelta > 0 ? '+' : ''}${openDelta} vs prior week</div></div>
+      <div class="insight-card"><div class="insight-card-label">Average risk score</div><div class="insight-card-value">${latest.avgRisk}</div><div class="insight-card-meta">${riskDelta > 0 ? '+' : ''}${riskDelta} week-over-week</div></div>
+      <div class="insight-card"><div class="insight-card-label">Mean time to remediate</div><div class="insight-card-value">${latest.mttr.toFixed(1)}d</div><div class="insight-card-meta">${mttrDelta}d vs prior week</div></div>
+      <div class="insight-card"><div class="insight-card-label">SLA compliance</div><div class="insight-card-value" style="color:#185FA5">${latest.sla}%</div><div class="insight-card-meta">Target >= 90%</div></div>
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:16px">
+      <div class="table-toolbar"><div class="section-title" style="margin:0">Weekly backlog trend</div></div>
+      <div style="padding:12px 16px">
+        <div class="insight-bars">
+          ${series.map(point => {
+            const height = Math.max(12, Math.round((point.open / maxOpen) * 130));
+            return `<div class="insight-bar-col"><div class="insight-bar" style="height:${height}px;background:#1D9E75"></div><div class="insight-bar-value">${point.open}</div><div class="insight-bar-label">${point.label}</div></div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-toolbar"><div class="section-title" style="margin:0">Trend details</div></div>
+      <table>
+        <thead><tr><th>Week</th><th>New findings</th><th>Resolved</th><th>Open high-risk</th><th>Avg risk</th><th>MTTR</th><th>SLA compliance</th></tr></thead>
+        <tbody>
+          ${series.map(point => `<tr>
+            <td>${point.label}</td>
+            <td>${point.discovered}</td>
+            <td>${point.resolved}</td>
+            <td>${point.open}</td>
+            <td>${point.avgRisk}</td>
+            <td>${point.mttr.toFixed(1)}d</td>
+            <td>${point.sla}%</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderResourceConfig() {
+  renderTierStats();
+  recalcFindingScores();
+  renderDistribution();
+  renderResourceTable();
+  updateOverridesSummary();
+}
+
+// ── Live score recalculation ──
+function recalcFindingScores() {
+  findings.forEach(f => {
+    const res = resources.find(r => r.name === f.resource);
+    if (!res) return;
+    const originalTier = res.inferredTier;
+    const currentTier = res.currentTier || res.inferredTier;
+    if (originalTier === currentTier) {
+      f.score = originalScores[f.id];
+    } else {
+      const origMul = tierMultipliers[originalTier];
+      const newMul = tierMultipliers[currentTier];
+      const ratio = newMul / origMul;
+      f.score = Math.max(1, Math.min(100, Math.round(originalScores[f.id] * ratio)));
+    }
+    // Update the resource importance factor too
+    f.factors.resourceImportance = Math.round(tierMultipliers[currentTier] * 100);
+  });
+  // Update resource avgScores
+  resources.forEach(r => {
+    const rf = findings.filter(f => f.resource === r.name);
+    r.findingCount = rf.length;
+    if (rf.length > 0) {
+      r.avgScore = Math.round(rf.reduce((s, f) => s + f.score, 0) / rf.length);
+    }
+  });
+}
+
+function renderTierStats() {
+  const c = { critical: 0, high: 0, medium: 0, low: 0 };
+  resources.forEach(r => { c[r.currentTier || r.inferredTier]++; });
+  document.getElementById('tierCountCritical').textContent = c.critical;
+  document.getElementById('tierCountHigh').textContent = c.high;
+  document.getElementById('tierCountMedium').textContent = c.medium;
+  document.getElementById('tierCountLow').textContent = c.low;
+}
+
+// ── Distribution with before/after preview ──
+function renderDistribution() {
+  const ranges = [
+    { label: '76–100', min: 76, max: 100, color: '#E24B4A' },
+    { label: '51–75', min: 51, max: 75, color: '#EF9F27' },
+    { label: '26–50', min: 26, max: 50, color: '#BA7517' },
+    { label: '0–25', min: 0, max: 25, color: '#639922' },
+  ];
+  // Original counts (using saved original scores)
+  const origCounts = ranges.map(r => findings.filter(f => originalScores[f.id] >= r.min && originalScores[f.id] <= r.max).length);
+  // Current counts (using recalculated scores)
+  const currCounts = ranges.map(r => findings.filter(f => f.score >= r.min && f.score <= r.max).length);
+  const hasOverrides = resources.some(r => r.currentTier && r.currentTier !== r.inferredTier);
+  const maxCount = Math.max(...origCounts, ...currCounts, 1);
+
+  document.getElementById('distributionChart').innerHTML = ranges.map((r, i) => {
+    const orig = origCounts[i];
+    const curr = currCounts[i];
+    const origPct = (orig / maxCount) * 100;
+    const currPct = (curr / maxCount) * 100;
+    const delta = curr - orig;
+    let deltaHtml = '';
+    if (hasOverrides && delta !== 0) {
+      const cls = delta > 0 ? 'positive' : 'negative';
+      deltaHtml = `<span class="dist-delta ${cls}">${delta > 0 ? '+' : ''}${delta}</span>`;
+    } else {
+      deltaHtml = `<span class="dist-delta neutral"></span>`;
+    }
+    // Show original bar as ghost + current bar on top
+    const barHtml = hasOverrides && delta !== 0
+      ? `<div class="dist-bar-track"><div class="dist-bar-projected" style="width:${origPct}%;background:${r.color}"></div><div class="dist-bar-fill" style="width:${currPct}%;background:${r.color}"></div></div>`
+      : `<div class="dist-bar-track"><div class="dist-bar-fill" style="width:${currPct}%;background:${r.color}"></div></div>`;
+    return `<div class="dist-row">
+      <span class="dist-label">${r.label}</span>
+      ${barHtml}
+      <span class="dist-count">${curr} finding${curr !== 1 ? 's' : ''}</span>
+      ${deltaHtml}
+    </div>`;
+  }).join('');
+}
+
+function filterResources() {
+  const search = document.getElementById('resourceSearchInput').value.toLowerCase();
+  const type = document.getElementById('resourceTypeFilter').value;
+  const tier = document.getElementById('tierFilter').value;
+  displayedResources = resources.filter(r => {
+    if (search && !r.name.toLowerCase().includes(search)) return false;
+    if (type && r.type !== type) return false;
+    if (tier && (r.currentTier || r.inferredTier) !== tier) return false;
+    return true;
+  });
+  sortResources();
+  renderResourceTable();
+}
+
+// ── Sorting ──
+const tierOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+function sortResources() {
+  const dir = resourceSortDir === 'asc' ? 1 : -1;
+  displayedResources.sort((a, b) => {
+    let av, bv;
+    switch (resourceSortCol) {
+      case 'name': av = a.name; bv = b.name; return av.localeCompare(bv) * dir;
+      case 'type': av = a.type; bv = b.type; return av.localeCompare(bv) * dir;
+      case 'tier':
+        av = tierOrder[a.currentTier || a.inferredTier]; bv = tierOrder[b.currentTier || b.inferredTier];
+        return (av - bv) * dir;
+      case 'findings': return (a.findingCount - b.findingCount) * dir;
+      case 'score': return (a.avgScore - b.avgScore) * dir;
+      default: return 0;
+    }
+  });
+}
+
+function setResourceSort(col) {
+  if (resourceSortCol === col) {
+    resourceSortDir = resourceSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    resourceSortCol = col;
+    resourceSortDir = col === 'findings' || col === 'score' ? 'desc' : 'asc';
+  }
+  filterResources();
+}
+
+function renderResourceTable() {
+  const tbody = document.getElementById('resourceTableBody');
+  if (!displayedResources.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--color-text-tertiary);font-size:13px">No resources match current filters</td></tr>';
+    return;
+  }
+  // Update sortable headers
+  document.querySelectorAll('.sort-header .sort-arrow').forEach(el => {
+    const col = el.parentElement.dataset.sort;
+    el.classList.toggle('active', col === resourceSortCol);
+    el.textContent = col === resourceSortCol ? (resourceSortDir === 'asc' ? '▲' : '▼') : '▲';
+  });
+
+  tbody.innerHTML = displayedResources.map(r => {
+    const tier = r.currentTier || r.inferredTier;
+    const overridden = r.currentTier && r.currentTier !== r.inferredTier;
+    const rl = { github: 'GitHub', slack: 'Slack', aws: 'AWS', wiki: 'Wiki' }[r.type] || r.type;
+    const ec = { prod: 'env-prod', staging: 'env-staging', dev: 'env-dev' }[r.env] || 'env-unknown';
+    const el = { prod: 'Prod', staging: 'Staging', dev: 'Dev' }[r.env] || '—';
+    const sc = r.avgScore >= 76 ? '#E24B4A' : r.avgScore >= 51 ? '#EF9F27' : r.avgScore >= 26 ? '#BA7517' : '#639922';
+    const isSelected = selectedResourceId === r.id;
+    const resetHtml = overridden ? `<span class="reset-link" onclick="event.stopPropagation();resetSingleTier(${r.id})">reset</span>` : '';
+    return `<tr class="${isSelected ? 'selected' : ''}" onclick="selectResource(${r.id})">
+      <td><div style="font-size:13px;font-weight:500" class="text-truncate">${r.name}</div><div style="font-size:11px;color:var(--color-text-tertiary)">${r.visibility}</div></td>
+      <td><div class="resource-tag"><div class="resource-icon ri-${r.type}">${resourceIcons[r.type] || ''}</div><span>${rl}</span></div></td>
+      <td><span class="${ec} env-tag">${el}</span></td>
+      <td><span class="tier-badge tier-${r.inferredTier}">${r.inferredTier}</span>${overridden ? '<span class="override-badge">Overridden</span>' : ''}${resetHtml}<div class="inference-reason">${r.inferredReason}</div></td>
+      <td onclick="event.stopPropagation()"><select class="tier-select" onchange="updateResourceTier(${r.id},this.value)"><option value="critical"${tier==='critical'?' selected':''}>Critical</option><option value="high"${tier==='high'?' selected':''}>High</option><option value="medium"${tier==='medium'?' selected':''}>Medium</option><option value="low"${tier==='low'?' selected':''}>Low</option></select></td>
+      <td style="font-size:13px">${r.findingCount || '—'}</td>
+      <td>${r.findingCount > 0 ? `<div class="score-bar"><div class="score-track"><div class="score-fill" style="width:${r.avgScore}%;background:${sc}"></div></div><div class="score-num">${r.avgScore}</div></div>` : '<span style="font-size:12px;color:var(--color-text-tertiary)">—</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Resource detail panel ──
+function selectResource(id) {
+  selectedResourceId = selectedResourceId === id ? null : id;
+  renderResourceTable();
+  renderResourceDetail();
+}
+
+function renderResourceDetail() {
+  const panel = document.getElementById('detailPanel');
+  const empty = document.getElementById('emptyPanel');
+
+  if (currentView !== 'resourceConfig' || !selectedResourceId) {
+    if (currentView === 'resourceConfig') {
+      panel.classList.add('hidden');
+      empty.classList.remove('hidden');
+      empty.querySelector('p').textContent = 'Select a resource to see associated findings';
+    }
+    return;
+  }
+
+  const r = resources.find(x => x.id === selectedResourceId);
+  if (!r) return;
+  empty.classList.add('hidden');
+  panel.classList.remove('hidden');
+
+  const tier = r.currentTier || r.inferredTier;
+  const overridden = r.currentTier && r.currentTier !== r.inferredTier;
+  const assocFindings = findings.filter(f => f.resource === r.name);
+  const rl = { github: 'GitHub', slack: 'Slack', aws: 'AWS', wiki: 'Wiki' }[r.type] || r.type;
+
+  let findingsHtml = '';
+  if (assocFindings.length > 0) {
+    findingsHtml = assocFindings.map(f => {
+      const origScore = originalScores[f.id];
+      const delta = f.score - origScore;
+      const deltaStr = delta !== 0 ? ` <span style="font-size:11px;color:${delta > 0 ? '#A32D2D' : '#3B6D11'}">(${delta > 0 ? '+' : ''}${delta})</span>` : '';
+      const sc = f.score >= 76 ? '#E24B4A' : f.score >= 51 ? '#EF9F27' : f.score >= 26 ? '#BA7517' : '#639922';
+      return `<div class="resource-finding-item">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span class="sev-badge sev-${f.sev}">${f.sev}</span>
+          <span style="font-size:12px;font-weight:500">${f.type}</span>
+        </div>
+        <div class="score-bar" style="margin-bottom:4px">
+          <div class="score-track"><div class="score-fill" style="width:${f.score}%;background:${sc}"></div></div>
+          <div class="score-num">${f.score}${deltaStr}</div>
+        </div>
+        <div style="font-size:11px;color:var(--color-text-tertiary)">Validity: ${f.validity} · Age: ${f.age}</div>
+      </div>`;
+    }).join('');
+  } else {
+    findingsHtml = '<p style="font-size:12px;color:var(--color-text-tertiary);padding:8px 0">No findings for this resource</p>';
+  }
+
+  panel.innerHTML = `
+    <div class="panel-header">
+      <span class="tier-badge tier-${tier}">${tier}</span>
+      <div class="panel-title" style="font-size:13px">${r.name}</div>
+      <button class="panel-close" onclick="selectResource(${r.id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Resource details</div>
+      <div class="detail-row"><span class="detail-label">Type</span><span class="detail-value">${rl}</span></div>
+      <div class="detail-row"><span class="detail-label">Environment</span><span class="detail-value">${r.env}</span></div>
+      <div class="detail-row"><span class="detail-label">Visibility</span><span class="detail-value">${r.visibility}</span></div>
+      <div class="detail-row"><span class="detail-label">Inferred tier</span><span class="detail-value"><span class="tier-badge tier-${r.inferredTier}">${r.inferredTier}</span></span></div>
+      <div class="detail-row"><span class="detail-label">Current tier</span><span class="detail-value"><span class="tier-badge tier-${tier}">${tier}</span>${overridden ? ' <span class="override-badge">Overridden</span>' : ''}</span></div>
+      <div class="detail-row"><span class="detail-label">Reason</span><span class="detail-value" style="text-align:right">${r.inferredReason}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Associated findings (${assocFindings.length})</div>
+      ${findingsHtml}
+    </div>
+  `;
+}
+
+function updateResourceTier(id, newTier) {
+  const r = resources.find(x => x.id === id);
+  if (r) {
+    r.currentTier = newTier === r.inferredTier ? null : newTier;
+    recalcFindingScores();
+    renderTierStats();
+    renderDistribution();
+    renderResourceTable();
+    updateOverridesSummary();
+    if (selectedResourceId === id) renderResourceDetail();
+  }
+}
+
+function resetSingleTier(id) {
+  const r = resources.find(x => x.id === id);
+  if (r) {
+    r.currentTier = null;
+    recalcFindingScores();
+    renderTierStats();
+    renderDistribution();
+    renderResourceTable();
+    updateOverridesSummary();
+    if (selectedResourceId === id) renderResourceDetail();
+    showToast(`Reset ${r.name} to inferred tier`);
+  }
+}
+
+function updateOverridesSummary() {
+  const overrides = resources.filter(r => r.currentTier && r.currentTier !== r.inferredTier).length;
+  const el = document.getElementById('overridesSummary');
+  if (overrides > 0) {
+    el.textContent = `${overrides} override${overrides > 1 ? 's' : ''} pending`;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
+function resetAllTiers() {
+  resources.forEach(r => r.currentTier = null);
+  recalcFindingScores();
+  renderResourceConfig();
+  renderResourceDetail();
+  showToast('All tiers reset to system-inferred values');
+}
+
+function saveConfigChanges() {
+  const overrides = resources.filter(r => r.currentTier && r.currentTier !== r.inferredTier);
+  if (overrides.length === 0) {
+    showToast('No pending changes to save');
+    return;
+  }
+  const count = overrides.length;
+  overrides.forEach(r => {
+    r.inferredTier = r.currentTier;
+    r.currentTier = null;
+  });
+  // Update original scores to match new baseline
+  findings.forEach(f => { originalScores[f.id] = f.score; });
+  renderResourceConfig();
+  renderResourceDetail();
+  showToast(`Saved ${count} tier override${count > 1 ? 's' : ''} — finding scores updated`);
+}
+
+// ── Toast notification ──
+let toastTimeout = null;
+function showToast(message) {
+  let toast = document.getElementById('appToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'appToast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.remove('show');
+  clearTimeout(toastTimeout);
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+    toastTimeout = setTimeout(() => toast.classList.remove('show'), 2500);
+  });
+}
+
+// ── Onboarding flow ──
+let obStep = 0;
+const connectedSources = new Set();
+let prodPatterns = ['*-prod', '*-production', '*-api'];
+let devPatterns = ['*-dev', '*-sandbox', '*-test'];
+let crownJewels = new Set();
+let policyPublicRepos = true;
+let policyStagingMedium = true;
+let policyArchivedLow = true;
+
+function showOnboarding() {
+  obStep = 0;
+  connectedSources.clear();
+  crownJewels.clear();
+  prodPatterns = ['*-prod', '*-production', '*-api'];
+  devPatterns = ['*-dev', '*-sandbox', '*-test'];
+  document.getElementById('onboardingOverlay').classList.add('show');
+  renderObStep();
+}
+
+function closeOnboarding() {
+  document.getElementById('onboardingOverlay').classList.remove('show');
+}
+
+function obNext() {
+  if (obStep < 2) { obStep++; renderObStep(); }
+  else { applyOnboardingResults(); closeOnboarding(); }
+}
+
+function obPrev() {
+  if (obStep > 0) { obStep--; renderObStep(); }
+}
+
+function renderObStep() {
+  // Update dots
+  for (let i = 0; i < 3; i++) {
+    const dot = document.getElementById('obDot' + i);
+    dot.className = 'ob-step-dot' + (i === obStep ? ' active' : i < obStep ? ' done' : '');
+  }
+  document.getElementById('obBack').style.display = obStep > 0 ? '' : 'none';
+  const nextBtn = document.getElementById('obNext');
+  const skipBtn = document.getElementById('obSkip');
+
+  if (obStep === 0) renderObStep0(nextBtn, skipBtn);
+  else if (obStep === 1) renderObStep1(nextBtn, skipBtn);
+  else renderObStep2(nextBtn, skipBtn);
+}
+
+// Step 0: Connect sources
+function renderObStep0(nextBtn, skipBtn) {
+  document.getElementById('obTitle').textContent = 'Connect your sources';
+  document.getElementById('obSubtitle').textContent = 'Vault Radar scans your connected sources for leaked secrets. The more we can see, the better we can prioritize.';
+  nextBtn.textContent = 'Continue';
+  skipBtn.textContent = 'Skip setup';
+
+  const sources = [
+    { id: 'github', name: 'GitHub', color: '#D3D1C7', textColor: '#2C2C2A', icon: resourceIcons.github, desc: 'Repos & CODEOWNERS' },
+    { id: 'slack', name: 'Slack', color: '#B5D4F4', textColor: '#042C53', icon: resourceIcons.slack, desc: 'Channels & DMs' },
+    { id: 'aws', name: 'AWS', color: '#FAC775', textColor: '#412402', icon: resourceIcons.aws, desc: 'IAM & Secrets Manager' },
+    { id: 'jira', name: 'Jira', color: '#B5D4F4', textColor: '#042C53', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.53 2c0 2.4 1.97 4.35 4.35 4.35h1.78v1.7c0 2.4 1.94 4.34 4.34 4.35V2.84a.84.84 0 00-.84-.84H11.53zM6.77 6.8a4.36 4.36 0 004.34 4.34h1.8v1.72a4.36 4.36 0 004.34 4.34V7.63a.84.84 0 00-.83-.83H6.77zM2 11.6c0 2.4 1.95 4.34 4.35 4.35h1.78v1.72c0 2.4 1.95 4.34 4.35 4.34V12.44a.84.84 0 00-.84-.84H2z"/></svg>', desc: 'Projects & tickets' },
+    { id: 'okta', name: 'Okta', color: '#CECBF6', textColor: '#26215C', icon: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="white"/></svg>', desc: 'Identity & teams' },
+    { id: 'wiki', name: 'Wiki', color: '#CECBF6', textColor: '#26215C', icon: resourceIcons.wiki, desc: 'Internal docs' },
+  ];
+
+  const body = document.getElementById('obBody');
+  body.innerHTML = `
+    <div class="integration-grid">
+      ${sources.map(s => `
+        <div class="integration-card ${connectedSources.has(s.id) ? 'connected' : ''}" onclick="toggleSource('${s.id}')" id="ic-${s.id}">
+          <div class="ic-icon" style="background:${s.color};color:${s.textColor}">${s.icon}</div>
+          <div class="ic-name">${s.name}</div>
+          <div class="ic-status">${connectedSources.has(s.id) ? '✓ Connected' : s.desc}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="discovery-stats" id="discoveryStats" style="${connectedSources.size === 0 ? 'display:none' : ''}">
+      <div class="discovery-stat"><div class="discovery-stat-num" id="discRepos">${connectedSources.has('github') ? '47' : '0'}</div><div class="discovery-stat-label">Repositories</div></div>
+      <div class="discovery-stat"><div class="discovery-stat-num" id="discChannels">${connectedSources.has('slack') ? '12' : '0'}</div><div class="discovery-stat-label">Channels</div></div>
+      <div class="discovery-stat"><div class="discovery-stat-num" id="discAccounts">${connectedSources.has('aws') ? '3' : '0'}</div><div class="discovery-stat-label">Cloud accounts</div></div>
+      <div class="discovery-stat"><div class="discovery-stat-num" id="discTeams">${connectedSources.has('okta') ? '8' : '0'}</div><div class="discovery-stat-label">Teams</div></div>
+    </div>
+  `;
+}
+
+function toggleSource(id) {
+  const card = document.getElementById('ic-' + id);
+  if (connectedSources.has(id)) {
+    connectedSources.delete(id);
+    card.classList.remove('connected');
+    card.querySelector('.ic-status').textContent = card.querySelector('.ic-status').dataset.desc || 'Click to connect';
+  } else {
+    connectedSources.add(id);
+    card.classList.add('connected');
+    card.querySelector('.ic-status').textContent = '✓ Connected';
+  }
+  // Update discovery stats
+  const stats = document.getElementById('discoveryStats');
+  stats.style.display = connectedSources.size > 0 ? '' : 'none';
+  document.getElementById('discRepos').textContent = connectedSources.has('github') ? '47' : '0';
+  document.getElementById('discChannels').textContent = connectedSources.has('slack') ? '12' : '0';
+  document.getElementById('discAccounts').textContent = connectedSources.has('aws') ? '3' : '0';
+  document.getElementById('discTeams').textContent = connectedSources.has('okta') ? '8' : '0';
+}
+
+// Step 1: Teach the system
+function renderObStep1(nextBtn, skipBtn) {
+  document.getElementById('obTitle').textContent = 'Teach us what matters';
+  document.getElementById('obSubtitle').textContent = 'Help the system understand your org so it can prioritize findings automatically. Every answer generates reusable rules.';
+  nextBtn.textContent = 'Continue';
+  skipBtn.textContent = 'Use defaults';
+
+  const topResources = resources.filter(r => r.findingCount > 0 || ['infra-prod','payments-api','auth-service','api-gateway','terraform-modules'].includes(r.name));
+
+  const body = document.getElementById('obBody');
+  body.innerHTML = `
+    <div class="ob-section">
+      <div class="ob-section-title">What naming patterns indicate production?</div>
+      <div class="ob-section-desc">Resources matching these patterns will be inferred as Critical or High importance.</div>
+      <div class="pattern-tags" id="prodPatternTags">
+        ${prodPatterns.map((p,i) => `<span class="pattern-tag">${p}<span class="remove-tag" onclick="removePattern('prod',${i})">&times;</span></span>`).join('')}
+      </div>
+      <div class="pattern-input-row">
+        <input class="pattern-input" id="prodPatternInput" placeholder="e.g. *-production, api-*" onkeydown="if(event.key==='Enter')addPattern('prod')">
+        <button class="btn" onclick="addPattern('prod')">Add</button>
+      </div>
+    </div>
+    <div class="ob-section">
+      <div class="ob-section-title">What patterns indicate dev or sandbox?</div>
+      <div class="ob-section-desc">These will be inferred as Low importance — still scanned, but deprioritized.</div>
+      <div class="pattern-tags" id="devPatternTags">
+        ${devPatterns.map((p,i) => `<span class="pattern-tag">${p}<span class="remove-tag" onclick="removePattern('dev',${i})">&times;</span></span>`).join('')}
+      </div>
+      <div class="pattern-input-row">
+        <input class="pattern-input" id="devPatternInput" placeholder="e.g. *-staging, test-*" onkeydown="if(event.key==='Enter')addPattern('dev')">
+        <button class="btn" onclick="addPattern('dev')">Add</button>
+      </div>
+    </div>
+    <div class="ob-section">
+      <div class="ob-section-title">Star your crown jewel services</div>
+      <div class="ob-section-desc">These will always be treated as Critical, regardless of naming patterns.</div>
+      <div class="crown-jewel-list">
+        ${topResources.map(r => `
+          <div class="crown-jewel-item ${crownJewels.has(r.id) ? 'selected' : ''}" onclick="toggleCrownJewel(${r.id})">
+            <span class="cj-star">${crownJewels.has(r.id) ? '★' : '☆'}</span>
+            <div class="resource-icon ri-${r.type}" style="width:16px;height:16px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">${resourceIcons[r.type] || ''}</div>
+            <span>${r.name}</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--color-text-tertiary)">${r.findingCount ? r.findingCount + ' finding' + (r.findingCount > 1 ? 's' : '') : ''}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="ob-section">
+      <div class="ob-section-title">Quick policies</div>
+      <div class="ob-section-desc">Set default behaviors for common scenarios.</div>
+      <div class="policy-row">
+        <div><div class="policy-label">Public repos are always High priority</div><div class="policy-desc">Any secret in a public repo is urgent regardless of type</div></div>
+        <div class="toggle ${policyPublicRepos ? 'on' : ''}" onclick="this.classList.toggle('on');policyPublicRepos=!policyPublicRepos"></div>
+      </div>
+      <div class="policy-row">
+        <div><div class="policy-label">Staging resources default to Medium</div><div class="policy-desc">Staging environments get moderate priority</div></div>
+        <div class="toggle ${policyStagingMedium ? 'on' : ''}" onclick="this.classList.toggle('on');policyStagingMedium=!policyStagingMedium"></div>
+      </div>
+      <div class="policy-row">
+        <div><div class="policy-label">Archived repos auto-close findings</div><div class="policy-desc">Findings in archived repos are automatically suppressed</div></div>
+        <div class="toggle ${policyArchivedLow ? 'on' : ''}" onclick="this.classList.toggle('on');policyArchivedLow=!policyArchivedLow"></div>
+      </div>
+    </div>
+  `;
+}
+
+function addPattern(type) {
+  const input = document.getElementById(type + 'PatternInput');
+  const val = input.value.trim();
+  if (!val) return;
+  if (type === 'prod') prodPatterns.push(val);
+  else devPatterns.push(val);
+  input.value = '';
+  renderObStep();
+}
+
+function removePattern(type, idx) {
+  if (type === 'prod') prodPatterns.splice(idx, 1);
+  else devPatterns.splice(idx, 1);
+  renderObStep();
+}
+
+function toggleCrownJewel(id) {
+  if (crownJewels.has(id)) crownJewels.delete(id);
+  else crownJewels.add(id);
+  renderObStep();
+}
+
+// Step 2: Review
+function renderObStep2(nextBtn, skipBtn) {
+  document.getElementById('obTitle').textContent = 'Review your configuration';
+  document.getElementById('obSubtitle').textContent = 'Based on your answers, here\'s how we\'ve classified your resources. You can fine-tune these later in Resource Importance settings.';
+  nextBtn.textContent = 'Apply & start scanning';
+  skipBtn.textContent = 'Go back';
+  skipBtn.onclick = () => { obPrev(); skipBtn.onclick = () => closeOnboarding(); };
+
+  // Simulate classification based on user answers
+  const classifications = computeClassifications();
+  const tiers = { critical: [], high: [], medium: [], low: [] };
+  classifications.forEach(c => tiers[c.tier].push(c));
+  const total = classifications.length;
+
+  const tierColors = { critical: '#E24B4A', high: '#EF9F27', medium: '#185FA5', low: '#639922' };
+
+  const body = document.getElementById('obBody');
+  body.innerHTML = `
+    <div style="margin-bottom:16px">
+      ${['critical','high','medium','low'].map(t => {
+        const items = tiers[t];
+        const pct = total > 0 ? (items.length / total) * 100 : 0;
+        return `<div class="review-tier-row">
+          <span class="tier-badge tier-${t}" style="min-width:65px;justify-content:center">${t}</span>
+          <div class="review-tier-bar"><div class="review-tier-fill" style="width:${pct}%;background:${tierColors[t]}"></div></div>
+          <span class="review-tier-count">${items.length}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px;font-weight:500">Resource breakdown</div>
+    <div class="review-resources">
+      ${classifications.map(c => {
+        const rl = { github: 'GitHub', slack: 'Slack', aws: 'AWS', wiki: 'Wiki' }[c.type] || c.type;
+        return `<div class="review-resource-item">
+          <div class="resource-icon ri-${c.type}" style="width:16px;height:16px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">${resourceIcons[c.type] || ''}</div>
+          <span style="flex:1;font-size:13px;color:var(--color-text-primary)">${c.name}</span>
+          <span class="tier-badge tier-${c.tier}">${c.tier}</span>
+          <span style="font-size:11px;color:var(--color-text-tertiary);min-width:70px;text-align:right">${c.reason}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:16px;padding:12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:12px;color:var(--color-text-tertiary);line-height:1.6">
+      <strong style="color:var(--color-text-secondary)">Rules generated:</strong>
+      ${prodPatterns.map(p => `<span class="pattern-tag" style="margin:2px">${p} → Critical/High</span>`).join('')}
+      ${devPatterns.map(p => `<span class="pattern-tag" style="margin:2px">${p} → Low</span>`).join('')}
+      ${policyPublicRepos ? '<span class="pattern-tag" style="margin:2px">Public repos → High+</span>' : ''}
+      ${policyStagingMedium ? '<span class="pattern-tag" style="margin:2px">Staging → Medium</span>' : ''}
+      ${crownJewels.size > 0 ? `<span class="pattern-tag" style="margin:2px">${crownJewels.size} crown jewel${crownJewels.size > 1 ? 's' : ''} → Critical</span>` : ''}
+    </div>
+  `;
+}
+
+function computeClassifications() {
+  return resources.map(r => {
+    let tier = 'medium';
+    let reason = 'Default';
+
+    // Crown jewels always critical
+    if (crownJewels.has(r.id)) { return { ...r, tier: 'critical', reason: 'Crown jewel' }; }
+
+    // Check prod patterns
+    const matchesProd = prodPatterns.some(p => {
+      const regex = new RegExp('^' + p.replace(/\*/g, '.*') + '$');
+      return regex.test(r.name);
+    });
+    if (matchesProd) { tier = 'critical'; reason = 'Prod pattern'; }
+
+    // Check dev patterns
+    const matchesDev = devPatterns.some(p => {
+      const regex = new RegExp('^' + p.replace(/\*/g, '.*') + '$');
+      return regex.test(r.name);
+    });
+    if (matchesDev) { tier = 'low'; reason = 'Dev pattern'; }
+
+    // Public repos policy
+    if (policyPublicRepos && r.visibility === 'Public' && tier !== 'critical') {
+      tier = 'high'; reason = 'Public repo';
+    }
+
+    // Staging policy
+    if (policyStagingMedium && r.env === 'staging' && !matchesProd && !matchesDev) {
+      tier = 'medium'; reason = 'Staging env';
+    }
+
+    // Prod env boost
+    if (r.env === 'prod' && tier === 'medium') {
+      tier = 'high'; reason = 'Prod env';
+    }
+
+    return { ...r, tier, reason };
+  });
+}
+
+function applyOnboardingResults() {
+  const classifications = computeClassifications();
+  classifications.forEach(c => {
+    const r = resources.find(x => x.id === c.id);
+    if (r) {
+      r.inferredTier = c.tier;
+      r.inferredReason = c.reason;
+      r.currentTier = null;
+    }
+  });
+  // Reset original scores and recalculate
+  recalcFindingScores();
+  findings.forEach(f => { originalScores[f.id] = f.score; });
+
+  // Switch to resource importance view
+  switchView('resourceConfig');
+  showToast(`Applied ${classifications.length} resource classifications from onboarding`);
+}
+
+// Auto-show onboarding on first visit (check localStorage)
+if (!localStorage.getItem('vr_onboarded')) {
+  setTimeout(() => showOnboarding(), 600);
+}
+
+filterTable();
+renderResourceTypeView();
+renderTeamView();
+renderRiskTrendsView();
+</script>
+</body>
+</html>
